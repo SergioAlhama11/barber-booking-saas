@@ -16,6 +16,21 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: barber_booking
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
 
       - name: Checkout repository
@@ -29,9 +44,5 @@ jobs:
 
       - name: Build backend
         run: |
-          if [ -f backend/mvnw ]; then
-            cd backend
-            ./mvnw clean install
-          else
-            echo "Backend not created yet"
-          fi
+          cd backend
+          ./mvnw clean install
