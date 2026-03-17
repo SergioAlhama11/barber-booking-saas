@@ -7,15 +7,19 @@
         http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="1" author="sergio">
+    <changeSet id="001-create-barbershops" author="sergio">
 
         <createTable tableName="barbershops">
 
             <column name="id" type="BIGSERIAL">
-                <constraints primaryKey="true"/>
+                <constraints primaryKey="true" nullable="false"/>
             </column>
 
             <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="owner_email" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
 
@@ -23,7 +27,10 @@
                 <constraints nullable="false" unique="true"/>
             </column>
 
-            <column name="created_at" type="TIMESTAMP"/>
+            <column name="created_at" type="TIMESTAMP"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
 
         </createTable>
 
