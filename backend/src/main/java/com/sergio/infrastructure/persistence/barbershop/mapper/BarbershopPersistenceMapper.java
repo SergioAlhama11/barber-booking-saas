@@ -11,8 +11,5 @@ public interface BarbershopPersistenceMapper {
     @Mapping(target = "id", ignore = true)
     BarbershopEntity toEntity(Barbershop barbershop);
 
-    @Mapping(target = "id", source = "id")
-    @Mapping(target = "name", source = "name")
-    @Mapping(target = "slug", source = "slug")
     Barbershop toDomain(BarbershopEntity barbershopEntity);
 }
