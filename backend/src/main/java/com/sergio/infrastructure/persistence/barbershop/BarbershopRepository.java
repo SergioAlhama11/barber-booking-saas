@@ -8,6 +8,10 @@ import java.util.Optional;
 @ApplicationScoped
 public class BarbershopRepository implements PanacheRepository<BarbershopEntity> {
 
+    public boolean existsById(Long id) {
+        return count("id", id) > 0;
+    }
+
     public Optional<BarbershopEntity> findBySlug(String slug) {
         return find("slug", slug).firstResultOptional();
     }
