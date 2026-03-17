@@ -28,3 +28,7 @@ backend/target/
 
 # Environment variables
 docker/.env
+
+# IntelliJ
+.idea/
+*.iml
