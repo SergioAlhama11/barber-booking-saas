@@ -18,6 +18,7 @@ import jakarta.ws.rs.NotFoundException;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -76,15 +77,23 @@ public class AppointmentService {
         }
 
         Service service = serviceService.findById(slug, appointment.getServiceId());
-        LocalDateTime endTime = appointment.getStartTime().plusMinutes(service.getDurationMinutes());
+        LocalDateTime start = appointment.getStartTime();
+        LocalDateTime end = start.plusMinutes(service.getDurationMinutes());
 
-        if (appointmentRepository.existsOverlapping(appointment.getBarberId(), appointment.getStartTime(), endTime)) {
+        LocalTime opening = LocalTime.of(9, 0);
+        LocalTime closing = LocalTime.of(18, 0);
+
+        if (start.toLocalTime().isBefore(opening) || end.toLocalTime().isAfter(closing)) {
+            throw new InvalidAppointmentException("Appointment outside working hours");
+        }
+
+        if (appointmentRepository.existsOverlapping(appointment.getBarberId(), start, end)) {
             throw new AppointmentConflictException("Time slot already booked");
         }
 
         AppointmentEntity entity = appointmentPersistenceMapper.toEntity(appointment);
         entity.setBarbershopId(barbershopId);
-        entity.setEndTime(endTime);
+        entity.setEndTime(end);
         entity.setCreatedAt(Instant.now());
 
         appointmentRepository.persist(entity);
