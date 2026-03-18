@@ -1,8 +1,10 @@
 package com.sergio.application.appointment;
 
+import com.sergio.application.service.ServiceService;
 import com.sergio.domain.appointment.Appointment;
 import com.sergio.domain.appointment.exception.AppointmentConflictException;
 import com.sergio.domain.appointment.exception.InvalidAppointmentException;
+import com.sergio.domain.service.Service;
 import com.sergio.infrastructure.persistence.appointment.AppointmentEntity;
 import com.sergio.infrastructure.persistence.appointment.AppointmentRepository;
 import com.sergio.infrastructure.persistence.appointment.mapper.AppointmentPersistenceMapper;
@@ -15,6 +17,8 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @ApplicationScoped
@@ -28,6 +32,9 @@ public class AppointmentService {
 
     @Inject
     BarberRepository barberRepository;
+
+    @Inject
+    ServiceService serviceService;
 
     @Inject
     AppointmentPersistenceMapper appointmentPersistenceMapper;
@@ -57,33 +64,27 @@ public class AppointmentService {
 
     @Transactional
     public Appointment create(String slug, Appointment appointment) {
-        if (!appointment.getStartTime().isBefore(appointment.getEndTime())) {
-            throw new InvalidAppointmentException("Start time must be before end time");
+        Long barbershopId = getBarbershopIdOrThrow(slug);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+
+        if (!appointment.getStartTime().isAfter(now)) {
+            throw new InvalidAppointmentException("Start time must be in the future");
         }
 
-        Long barbershopId = getBarbershopIdOrThrow(slug);
-
-        boolean barberExists = barberRepository.existsByIdAndBarbershopId(
-                appointment.getBarberId(),
-                barbershopId
-        );
-
-        if (!barberExists) {
+        if (!barberRepository.existsByIdAndBarbershopId(appointment.getBarberId(), barbershopId)) {
             throw new NotFoundException("Barber not found in this barbershop");
         }
 
-        boolean overlap = appointmentRepository.existsOverlapping(
-                appointment.getBarberId(),
-                appointment.getStartTime(),
-                appointment.getEndTime()
-        );
+        Service service = serviceService.findById(slug, appointment.getServiceId());
+        LocalDateTime endTime = appointment.getStartTime().plusMinutes(service.getDurationMinutes());
 
-        if (overlap) {
+        if (appointmentRepository.existsOverlapping(appointment.getBarberId(), appointment.getStartTime(), endTime)) {
             throw new AppointmentConflictException("Time slot already booked");
         }
 
         AppointmentEntity entity = appointmentPersistenceMapper.toEntity(appointment);
         entity.setBarbershopId(barbershopId);
+        entity.setEndTime(endTime);
         entity.setCreatedAt(Instant.now());
 
         appointmentRepository.persist(entity);

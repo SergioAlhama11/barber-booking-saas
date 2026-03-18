@@ -7,7 +7,7 @@
         http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="003-create-appointments" author="sergio">
+    <changeSet id="004-create-appointments" author="sergio">
 
         <createTable tableName="appointments">
 
@@ -23,19 +23,23 @@
                 <constraints nullable="false"/>
             </column>
 
+            <column name="service_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
             <column name="customer_name" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
 
-            <column name="start_time" type="TIMESTAMP">
+            <column name="start_time" type="TIMESTAMP WITH TIME ZONE">
                 <constraints nullable="false"/>
             </column>
 
-            <column name="end_time" type="TIMESTAMP">
+            <column name="end_time" type="TIMESTAMP WITH TIME ZONE">
                 <constraints nullable="false"/>
             </column>
 
-            <column name="created_at" type="TIMESTAMP"
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
                     defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
@@ -56,7 +60,15 @@
                 referencedColumnNames="id"
                 constraintName="fk_appointments_barber"/>
 
-        <createIndex tableName="appointments" indexName="idx_barber_time">
+        <addForeignKeyConstraint
+                baseTableName="appointments"
+                baseColumnNames="service_id"
+                referencedTableName="services"
+                referencedColumnNames="id"
+                constraintName="fk_appointments_service"/>
+
+        <createIndex tableName="appointments" indexName="idx_barbershop_barber_time">
+            <column name="barbershop_id"/>
             <column name="barber_id"/>
             <column name="start_time"/>
             <column name="end_time"/>

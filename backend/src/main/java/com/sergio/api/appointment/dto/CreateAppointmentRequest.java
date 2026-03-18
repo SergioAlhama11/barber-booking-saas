@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 public record CreateAppointmentRequest(
         @NotNull Long barberId,
+        @NotNull Long serviceId,
         @NotBlank String customerName,
-        @NotNull LocalDateTime startTime,
-        @NotNull LocalDateTime endTime
+        @NotNull LocalDateTime startTime
 ) {}

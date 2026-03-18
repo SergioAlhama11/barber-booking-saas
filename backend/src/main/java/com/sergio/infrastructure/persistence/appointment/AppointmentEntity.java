@@ -19,6 +19,9 @@ public class AppointmentEntity {
     @Column(name = "barber_id", nullable = false)
     private Long barberId;
 
+    @Column(name = "service_id", nullable = false)
+    private Long serviceId;
+
     @Column(name = "customer_name", nullable = false)
     private String customerName;
 
@@ -54,6 +57,10 @@ public class AppointmentEntity {
     public void setBarberId(Long barberId) {
         this.barberId = barberId;
     }
+
+    public Long getServiceId() { return serviceId; }
+
+    public void setServiceId(Long serviceId) { this.serviceId = serviceId; }
 
     public String getCustomerName() {
         return customerName;

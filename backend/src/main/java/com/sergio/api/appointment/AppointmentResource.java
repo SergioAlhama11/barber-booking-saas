@@ -28,7 +28,6 @@ public class AppointmentResource {
 
     @GET
     public List<AppointmentResponse> getAll(@PathParam("slug") @NotBlank String slug) {
-
         return appointmentService.findAllByBarbershop(slug)
                 .stream()
                 .map(mapper::toDto)
@@ -49,18 +48,11 @@ public class AppointmentResource {
             @PathParam("slug") @NotBlank String slug,
             @Valid CreateAppointmentRequest request) {
 
-        Appointment created = appointmentService.create(
-                slug,
-                mapper.toDomain(request)
-        );
+        Appointment created = appointmentService.create(slug, mapper.toDomain(request));
+        URI location = URI.create(String.format("/barbershops/%s/appointments/%d", slug, created.getId()));
 
-        URI location = URI.create(String.format(
-                "/barbershops/%s/appointments/%d",
-                slug,
-                created.getId()
-        ));
-
-        return Response.created(location)
+        return Response
+                .created(location)
                 .entity(mapper.toDto(created))
                 .build();
     }
