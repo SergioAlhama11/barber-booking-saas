@@ -14,11 +14,19 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
     }
 
     public boolean existsOverlapping(Long barberId, LocalDateTime start, LocalDateTime end) {
-
         return count("""
             barberId = ?1
             and startTime < ?2
             and endTime > ?3
         """, barberId, end, start) > 0;
+    }
+
+    public boolean existsOverlappingAnyBarber(Long barbershopId, LocalDateTime start, LocalDateTime end) {
+        return count(
+                "barbershopId = ?1 and startTime < ?2 and endTime > ?3",
+                barbershopId,
+                end,
+                start
+        ) > 0;
     }
 }
