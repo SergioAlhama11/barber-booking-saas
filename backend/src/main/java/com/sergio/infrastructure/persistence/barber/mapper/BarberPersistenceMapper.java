@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 public interface BarberPersistenceMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
     BarberEntity toEntity(Barber barber);
 
     Barber toDomain(BarberEntity barberEntity);

@@ -1,5 +1,7 @@
 package com.sergio.common.exception;
 
+import com.sergio.domain.appointment.exception.AppointmentConflictException;
+import com.sergio.domain.appointment.exception.InvalidAppointmentException;
 import com.sergio.domain.barbershop.exception.DuplicateBarbershopException;
 import io.quarkus.hibernate.validator.runtime.jaxrs.ResteasyReactiveViolationException;
 import jakarta.validation.ConstraintViolationException;
@@ -21,6 +23,20 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
                     ex.getMessage());
         }
 
+        // 🔴 409 - conflicto de citas (solapamiento)
+        if (exception instanceof AppointmentConflictException ex) {
+            return buildResponse(Response.Status.CONFLICT,
+                    ErrorCode.APPOINTMENT_CONFLICT,
+                    ex.getMessage());
+        }
+
+        // 🔴 400 - cita inválida (reglas de negocio)
+        if (exception instanceof InvalidAppointmentException ex) {
+            return buildResponse(Response.Status.BAD_REQUEST,
+                    ErrorCode.INVALID_APPOINTMENT,
+                    ex.getMessage());
+        }
+
         // 🔴 404 - no encontrado
         if (exception instanceof NotFoundException ex) {
             return buildResponse(Response.Status.NOT_FOUND,
@@ -30,7 +46,6 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
         // 🔴 400 - validación (Quarkus)
         if (exception instanceof ResteasyReactiveViolationException ex) {
-
             String message = ex.getConstraintViolations()
                     .stream()
                     .map(v -> v.getPropertyPath() + " " + v.getMessage())
@@ -44,7 +59,6 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
         // 🔴 400 - validación
         if (exception instanceof ConstraintViolationException ex) {
-
             String message = ex.getConstraintViolations()
                     .stream()
                     .map(v -> v.getPropertyPath() + " " + v.getMessage())

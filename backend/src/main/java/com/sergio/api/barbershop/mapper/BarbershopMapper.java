@@ -11,6 +11,7 @@ public interface BarbershopMapper {
 
     BarbershopResponse toDto(Barbershop barbershop);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "slug", ignore = true)
     Barbershop toDomain(CreateBarbershopRequest createBarbershopRequest);
 }
