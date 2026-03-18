@@ -1,6 +1,8 @@
 package com.sergio.common.exception;
 
 import com.sergio.domain.barbershop.exception.DuplicateBarbershopException;
+import com.sergio.domain.service.exception.DuplicateServiceException;
+import com.sergio.domain.service.exception.InvalidServiceException;
 import io.quarkus.hibernate.validator.runtime.jaxrs.ResteasyReactiveViolationException;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.ws.rs.NotFoundException;
@@ -18,6 +20,20 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
         if (exception instanceof DuplicateBarbershopException ex) {
             return buildResponse(Response.Status.CONFLICT,
                     ErrorCode.BARBERSHOP_ALREADY_EXISTS,
+                    ex.getMessage());
+        }
+
+        // 🔴 409 - conflicto (servicio duplicado)
+        if (exception instanceof DuplicateServiceException ex) {
+            return buildResponse(Response.Status.CONFLICT,
+                    ErrorCode.SERVICE_ALREADY_EXISTS,
+                    ex.getMessage());
+        }
+
+        // 🔴 400 - servicio inválido
+        if (exception instanceof InvalidServiceException ex) {
+            return buildResponse(Response.Status.BAD_REQUEST,
+                    ErrorCode.INVALID_SERVICE,
                     ex.getMessage());
         }
 
