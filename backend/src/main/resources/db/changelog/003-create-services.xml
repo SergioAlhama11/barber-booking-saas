@@ -7,7 +7,7 @@
         http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="004-create-services" author="sergio">
+    <changeSet id="003-create-services" author="sergio">
 
         <createTable tableName="services">
 
@@ -27,7 +27,7 @@
                 <constraints nullable="false"/>
             </column>
 
-            <column name="created_at" type="TIMESTAMP"
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
                     defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>

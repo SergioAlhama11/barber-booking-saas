@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="004-create-appointments" author="sergio">
+
+        <createTable tableName="appointments">
+
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="barbershop_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="barber_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="service_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="customer_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="start_time" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="end_time" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="appointments"
+                baseColumnNames="barbershop_id"
+                referencedTableName="barbershops"
+                referencedColumnNames="id"
+                constraintName="fk_appointments_barbershop"/>
+
+        <addForeignKeyConstraint
+                baseTableName="appointments"
+                baseColumnNames="barber_id"
+                referencedTableName="barbers"
+                referencedColumnNames="id"
+                constraintName="fk_appointments_barber"/>
+
+        <addForeignKeyConstraint
+                baseTableName="appointments"
+                baseColumnNames="service_id"
+                referencedTableName="services"
+                referencedColumnNames="id"
+                constraintName="fk_appointments_service"/>
+
+        <createIndex tableName="appointments" indexName="idx_barbershop_barber_time">
+            <column name="barbershop_id"/>
+            <column name="barber_id"/>
+            <column name="start_time"/>
+            <column name="end_time"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>

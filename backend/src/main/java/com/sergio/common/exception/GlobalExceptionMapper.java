@@ -1,5 +1,7 @@
 package com.sergio.common.exception;
 
+import com.sergio.domain.appointment.exception.AppointmentConflictException;
+import com.sergio.domain.appointment.exception.InvalidAppointmentException;
 import com.sergio.domain.barbershop.exception.DuplicateBarbershopException;
 import com.sergio.domain.service.exception.DuplicateServiceException;
 import com.sergio.domain.service.exception.InvalidServiceException;
@@ -20,6 +22,20 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
         if (exception instanceof DuplicateBarbershopException ex) {
             return buildResponse(Response.Status.CONFLICT,
                     ErrorCode.BARBERSHOP_ALREADY_EXISTS,
+                    ex.getMessage());
+        }
+
+        // 🔴 409 - conflicto de citas (solapamiento)
+        if (exception instanceof AppointmentConflictException ex) {
+            return buildResponse(Response.Status.CONFLICT,
+                    ErrorCode.APPOINTMENT_CONFLICT,
+                    ex.getMessage());
+        }
+
+        // 🔴 400 - cita inválida (reglas de negocio)
+        if (exception instanceof InvalidAppointmentException ex) {
+            return buildResponse(Response.Status.BAD_REQUEST,
+                    ErrorCode.INVALID_APPOINTMENT,
                     ex.getMessage());
         }
 
@@ -46,7 +62,6 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
         // 🔴 400 - validación (Quarkus)
         if (exception instanceof ResteasyReactiveViolationException ex) {
-
             String message = ex.getConstraintViolations()
                     .stream()
                     .map(v -> v.getPropertyPath() + " " + v.getMessage())
@@ -60,7 +75,6 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
         // 🔴 400 - validación
         if (exception instanceof ConstraintViolationException ex) {
-
             String message = ex.getConstraintViolations()
                     .stream()
                     .map(v -> v.getPropertyPath() + " " + v.getMessage())

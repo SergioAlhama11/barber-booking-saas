@@ -11,4 +11,8 @@ public class BarberRepository implements PanacheRepository<BarberEntity> {
     public List<BarberEntity> findByBarbershopId(Long barbershopId) {
         return list("barbershopId", barbershopId);
     }
+
+    public boolean existsByIdAndBarbershopId(Long barberId, Long barbershopId) {
+        return count("id = ?1 and barbershopId = ?2", barberId, barbershopId) > 0;
+    }
 }
