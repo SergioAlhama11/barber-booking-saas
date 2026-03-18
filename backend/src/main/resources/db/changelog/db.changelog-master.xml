@@ -10,5 +10,6 @@
     <include file="db/changelog/001-create-barbershops.xml"/>
     <include file="db/changelog/002-create-barbers.xml"/>
     <include file="db/changelog/003-create-appointments.xml"/>
+    <include file="db/changelog/004-create-services.xml"/>
 
 </databaseChangeLog>
