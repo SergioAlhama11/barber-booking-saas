@@ -11,6 +11,7 @@ public interface AppointmentMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "barbershopId", ignore = true)
+    @Mapping(target = "endTime", ignore = true)
     Appointment toDomain(CreateAppointmentRequest request);
 
     AppointmentResponse toDto(Appointment appointment);

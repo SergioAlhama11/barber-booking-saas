@@ -8,16 +8,19 @@ public class Appointment {
     private Long barbershopId;
     private Long barberId;
     private Long serviceId;
+    // private String serviceName;
     private String customerName;
+    private String customerEmail;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String customerName, LocalDateTime startTime, LocalDateTime endTime) {
+    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String customerName, String customerEmail, LocalDateTime startTime, LocalDateTime endTime) {
         this.id = id;
         this.barbershopId = barbershopId;
         this.barberId = barberId;
         this.serviceId = serviceId;
         this.customerName = customerName;
+        this.customerEmail = customerEmail;
         this.startTime = startTime;
         this.endTime = endTime;
     }
@@ -62,6 +65,14 @@ public class Appointment {
 
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 
     public LocalDateTime getStartTime() {

@@ -25,6 +25,9 @@ public class AppointmentEntity {
     @Column(name = "customer_name", nullable = false)
     private String customerName;
 
+    @Column(name = "customer_email", nullable = false)
+    private String customerEmail;
+
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
@@ -68,6 +71,14 @@ public class AppointmentEntity {
 
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 
     public LocalDateTime getStartTime() {

@@ -7,10 +7,14 @@
         http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <include file="db/changelog/001-create-barbershops.xml"/>
-    <include file="db/changelog/002-create-barbers.xml"/>
-    <include file="db/changelog/003-create-services.xml"/>
-    <include file="db/changelog/004-create-appointments.xml"/>
-    <include file="db/changelog/005-add-customer-email-to-appointments.xml"/>
+    <changeSet id="005-add-customer-email-to-appointments" author="sergio">
+
+        <addColumn tableName="appointments">
+            <column name="customer_email" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+    </changeSet>
 
 </databaseChangeLog>
