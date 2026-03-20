@@ -9,10 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +18,7 @@ public class AvailabilityService {
     private static final LocalTime OPENING_TIME = LocalTime.of(9, 0);
     private static final LocalTime CLOSING_TIME = LocalTime.of(18, 0);
     private static final int SLOT_INTERVAL_MINUTES = 30;
+    private static final int BOOKING_BUFFER_MINUTES = 5;
 
     @Inject
     BarbershopRepository barbershopRepository;
@@ -36,27 +34,35 @@ public class AvailabilityService {
 
     public List<LocalTime> getAvailableSlots(String slug, Long serviceId, Long barberId, LocalDate date) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
+        ZoneId zone = ZoneId.of("Europe/Madrid");
+        LocalDate today = LocalDate.now(zone);
+        LocalDateTime now = LocalDateTime.now(zone);
+
+        // ❌ no permitir fechas pasadas
         if (date.isBefore(today)) {
             return List.of();
         }
 
+        // ❌ validar barber
         if (barberId != null && !barberRepository.existsByIdAndBarbershopId(barberId, barbershopId)) {
             throw new NotFoundException("Barber not found in this barbershop");
         }
 
+        // ⏱ duración del servicio
         int duration = serviceService.findById(slug, serviceId).getDurationMinutes();
 
         List<LocalTime> slots = new ArrayList<>();
 
-        for (LocalTime current = OPENING_TIME; !current.plusMinutes(duration).isAfter(CLOSING_TIME); current = current.plusMinutes(SLOT_INTERVAL_MINUTES)) {
+        for (LocalTime current = OPENING_TIME;
+             !current.plusMinutes(duration).isAfter(CLOSING_TIME);
+             current = current.plusMinutes(SLOT_INTERVAL_MINUTES)) {
 
             LocalDateTime start = LocalDateTime.of(date, current);
             LocalDateTime end = start.plusMinutes(duration);
 
-            if (date.equals(today) && !start.isAfter(now)) {
+            // ❌ evitar slots en pasado (con buffer)
+            if (date.equals(today) && start.isBefore(now.plusMinutes(BOOKING_BUFFER_MINUTES))) {
                 continue;
             }
 
