@@ -2,6 +2,7 @@ package com.sergio.application.appointment;
 
 import com.sergio.application.service.ServiceService;
 import com.sergio.domain.appointment.Appointment;
+import com.sergio.domain.appointment.AppointmentFilter;
 import com.sergio.domain.appointment.exception.AppointmentConflictException;
 import com.sergio.domain.appointment.exception.InvalidAppointmentException;
 import com.sergio.domain.service.Service;
@@ -14,6 +15,7 @@ import com.sergio.infrastructure.persistence.barbershop.BarbershopRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 
 import java.time.Instant;
@@ -24,6 +26,9 @@ import java.util.List;
 
 @ApplicationScoped
 public class AppointmentService {
+
+    private static final LocalTime OPENING_TIME = LocalTime.of(9, 0);
+    private static final LocalTime CLOSING_TIME = LocalTime.of(18, 0);
 
     @Inject
     AppointmentRepository appointmentRepository;
@@ -52,15 +57,25 @@ public class AppointmentService {
     public Appointment findById(String slug, Long id) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
 
-        AppointmentEntity entity = appointmentRepository
-                .find("id = ?1 and barbershopId = ?2", id, barbershopId)
-                .firstResult();
+        return appointmentRepository.findByIdAndBarbershopId(barbershopId, id)
+                .map(appointmentPersistenceMapper::toDomain)
+                .orElseThrow(() -> new NotFoundException("Appointment not found"));
+    }
 
-        if (entity == null) {
-            throw new NotFoundException("Appointment not found");
-        }
+    public List<Appointment> findByEmail(String slug, String email, AppointmentFilter filter) {
+        Long barbershopId = getBarbershopIdOrThrow(slug);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
-        return appointmentPersistenceMapper.toDomain(entity);
+        return appointmentRepository
+                .findByBarbershopIdAndEmail(barbershopId, email)
+                .stream()
+                .filter(a -> switch (filter) {
+                    case FUTURE -> !a.getStartTime().isBefore(now);
+                    case PAST -> a.getStartTime().isBefore(now);
+                    case ALL -> true;
+                })
+                .map(appointmentPersistenceMapper::toDomain)
+                .toList();
     }
 
     @Transactional
@@ -68,28 +83,16 @@ public class AppointmentService {
         Long barbershopId = getBarbershopIdOrThrow(slug);
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
-        if (!appointment.getStartTime().isAfter(now)) {
-            throw new InvalidAppointmentException("Start time must be in the future");
-        }
-
-        if (!barberRepository.existsByIdAndBarbershopId(appointment.getBarberId(), barbershopId)) {
-            throw new NotFoundException("Barber not found in this barbershop");
-        }
+        validateStartTime(appointment.getStartTime(), now);
+        validateBarber(appointment.getBarberId(), barbershopId);
 
         Service service = serviceService.findById(slug, appointment.getServiceId());
+
         LocalDateTime start = appointment.getStartTime();
         LocalDateTime end = start.plusMinutes(service.getDurationMinutes());
 
-        LocalTime opening = LocalTime.of(9, 0);
-        LocalTime closing = LocalTime.of(18, 0);
-
-        if (start.toLocalTime().isBefore(opening) || end.toLocalTime().isAfter(closing)) {
-            throw new InvalidAppointmentException("Appointment outside working hours");
-        }
-
-        if (appointmentRepository.existsOverlapping(appointment.getBarberId(), start, end)) {
-            throw new AppointmentConflictException("Time slot already booked");
-        }
+        validateWorkingHours(start, end);
+        validateNoOverlap(appointment.getBarberId(), start, end);
 
         AppointmentEntity entity = appointmentPersistenceMapper.toEntity(appointment);
         entity.setBarbershopId(barbershopId);
@@ -101,13 +104,62 @@ public class AppointmentService {
         return appointmentPersistenceMapper.toDomain(entity);
     }
 
-    private Long getBarbershopIdOrThrow(String slug) {
-        BarbershopEntity barbershop = barbershopRepository.find("slug", slug).firstResult();
+    @Transactional
+    public void cancelAppointmentByEmail(String slug, Long id, String email) {
+        Long barbershopId = getBarbershopIdOrThrow(slug);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
-        if (barbershop == null) {
-            throw new NotFoundException("Barbershop not found");
+        AppointmentEntity entity = appointmentRepository
+                .findByIdAndBarbershopId(barbershopId, id)
+                .orElseThrow(() -> new NotFoundException("Appointment not found"));
+
+        validateOwnership(entity, email);
+        validateNotPast(entity.getStartTime(), now);
+
+        appointmentRepository.delete(entity);
+    }
+
+    private void validateStartTime(LocalDateTime start, LocalDateTime now) {
+        if (!start.isAfter(now)) {
+            throw new InvalidAppointmentException("Start time must be in the future");
         }
+    }
 
-        return barbershop.getId();
+    private void validateBarber(Long barberId, Long barbershopId) {
+        if (!barberRepository.existsByIdAndBarbershopId(barberId, barbershopId)) {
+            throw new NotFoundException("Barber not found in this barbershop");
+        }
+    }
+
+    private void validateWorkingHours(LocalDateTime start, LocalDateTime end) {
+        if (start.toLocalTime().isBefore(OPENING_TIME)
+                || end.toLocalTime().isAfter(CLOSING_TIME)) {
+            throw new InvalidAppointmentException("Appointment outside working hours");
+        }
+    }
+
+    private void validateNoOverlap(Long barberId, LocalDateTime start, LocalDateTime end) {
+        if (appointmentRepository.existsOverlapping(barberId, start, end)) {
+            throw new AppointmentConflictException("Time slot already booked");
+        }
+    }
+
+    private void validateOwnership(AppointmentEntity entity, String email) {
+        if (!entity.getCustomerEmail().equalsIgnoreCase(email)) {
+            throw new ForbiddenException("You cannot cancel this appointment");
+        }
+    }
+
+    private void validateNotPast(LocalDateTime startTime, LocalDateTime now) {
+        if (startTime.isBefore(now)) {
+            throw new InvalidAppointmentException("Cannot cancel past appointments");
+        }
+    }
+
+    private Long getBarbershopIdOrThrow(String slug) {
+        return barbershopRepository.find("slug", slug)
+                .firstResultOptional()
+                .map(BarbershopEntity::getId)
+                .orElseThrow(() -> new NotFoundException("Barbershop not found"));
     }
 }

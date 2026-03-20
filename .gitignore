@@ -32,3 +32,13 @@ docker/.env
 # IntelliJ
 .idea/
 *.iml
+
+# # Next.js
+.next/
+out/
+
+# Node
+node_modules/
+
+# Logs
+*.log
