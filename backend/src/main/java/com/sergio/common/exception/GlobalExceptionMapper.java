@@ -7,6 +7,7 @@ import com.sergio.domain.service.exception.DuplicateServiceException;
 import com.sergio.domain.service.exception.InvalidServiceException;
 import io.quarkus.hibernate.validator.runtime.jaxrs.ResteasyReactiveViolationException;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
@@ -18,81 +19,54 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
     @Override
     public Response toResponse(Throwable exception) {
 
-        // 🔴 409 - conflicto (duplicados)
         if (exception instanceof DuplicateBarbershopException ex) {
-            return buildResponse(Response.Status.CONFLICT,
-                    ErrorCode.BARBERSHOP_ALREADY_EXISTS,
-                    ex.getMessage());
+            return build(Response.Status.CONFLICT, ErrorCode.BARBERSHOP_ALREADY_EXISTS, ex.getMessage());
         }
 
-        // 🔴 409 - conflicto de citas (solapamiento)
         if (exception instanceof AppointmentConflictException ex) {
-            return buildResponse(Response.Status.CONFLICT,
-                    ErrorCode.APPOINTMENT_CONFLICT,
-                    ex.getMessage());
+            return build(Response.Status.CONFLICT, ErrorCode.APPOINTMENT_CONFLICT, ex.getMessage());
         }
 
-        // 🔴 400 - cita inválida (reglas de negocio)
         if (exception instanceof InvalidAppointmentException ex) {
-            return buildResponse(Response.Status.BAD_REQUEST,
-                    ErrorCode.INVALID_APPOINTMENT,
-                    ex.getMessage());
+            return build(Response.Status.BAD_REQUEST, ErrorCode.INVALID_APPOINTMENT, ex.getMessage());
         }
 
-        // 🔴 409 - conflicto (servicio duplicado)
         if (exception instanceof DuplicateServiceException ex) {
-            return buildResponse(Response.Status.CONFLICT,
-                    ErrorCode.SERVICE_ALREADY_EXISTS,
-                    ex.getMessage());
+            return build(Response.Status.CONFLICT, ErrorCode.SERVICE_ALREADY_EXISTS, ex.getMessage());
         }
 
-        // 🔴 400 - servicio inválido
         if (exception instanceof InvalidServiceException ex) {
-            return buildResponse(Response.Status.BAD_REQUEST,
-                    ErrorCode.INVALID_SERVICE,
-                    ex.getMessage());
+            return build(Response.Status.BAD_REQUEST, ErrorCode.INVALID_SERVICE, ex.getMessage());
         }
 
-        // 🔴 404 - no encontrado
         if (exception instanceof NotFoundException ex) {
-            return buildResponse(Response.Status.NOT_FOUND,
-                    ErrorCode.NOT_FOUND,
-                    ex.getMessage());
+            return build(Response.Status.NOT_FOUND, ErrorCode.NOT_FOUND, ex.getMessage());
         }
 
-        // 🔴 400 - validación (Quarkus)
-        if (exception instanceof ResteasyReactiveViolationException ex) {
-            String message = ex.getConstraintViolations()
-                    .stream()
-                    .map(v -> v.getPropertyPath() + " " + v.getMessage())
-                    .findFirst()
-                    .orElse("Validation error");
+        if (exception instanceof BadRequestException ex) {
+            return build(Response.Status.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, ex.getMessage());
+        }
 
-            return buildResponse(Response.Status.BAD_REQUEST,
+        if (exception instanceof IllegalArgumentException ex &&
+                ex.getMessage() != null &&
+                ex.getMessage().contains("No enum constant")) {
+
+            return build(
+                    Response.Status.BAD_REQUEST,
                     ErrorCode.VALIDATION_ERROR,
-                    message);
+                    "Invalid filter value. Allowed values: FUTURE, PAST, ALL"
+            );
         }
 
-        // 🔴 400 - validación
-        if (exception instanceof ConstraintViolationException ex) {
-            String message = ex.getConstraintViolations()
-                    .stream()
-                    .map(v -> v.getPropertyPath() + " " + v.getMessage())
-                    .findFirst()
-                    .orElse("Validation error");
+        // 🔴 IMPORTANTE: log
+        exception.printStackTrace();
 
-            return buildResponse(Response.Status.BAD_REQUEST,
-                    ErrorCode.VALIDATION_ERROR,
-                    message);
-        }
-
-        // 🔴 fallback
-        return buildResponse(Response.Status.INTERNAL_SERVER_ERROR,
+        return build(Response.Status.INTERNAL_SERVER_ERROR,
                 ErrorCode.INTERNAL_ERROR,
                 "Unexpected error");
     }
 
-    private Response buildResponse(Response.Status status, ErrorCode error, String message) {
+    private Response build(Response.Status status, ErrorCode error, String message) {
         return Response.status(status)
                 .entity(new ErrorResponse(error, message))
                 .build();
