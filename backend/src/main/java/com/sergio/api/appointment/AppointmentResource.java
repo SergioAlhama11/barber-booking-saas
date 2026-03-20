@@ -77,17 +77,6 @@ public class AppointmentResource {
         return Response.noContent().build();
     }
 
-    @DELETE
-    @Path("/{id}")
-    public Response cancel(
-            @PathParam("slug") @NotBlank String slug,
-            @PathParam("id") Long id,
-            @QueryParam("email") @NotBlank @Email String email
-    ) {
-        appointmentService.cancelAppointmentByEmail(slug, id, email);
-        return Response.noContent().build();
-    }
-
     private List<AppointmentResponse> toDtoList(List<Appointment> appointments) {
         return appointments.stream()
                 .map(mapper::toDto)

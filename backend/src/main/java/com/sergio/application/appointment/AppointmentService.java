@@ -129,25 +129,6 @@ public class AppointmentService {
         entity.setCancelTokenExpiresAt(null);
     }
 
-    // CANCEL DEPRECATED ??
-
-    @Transactional
-    public void cancelAppointmentByEmail(String slug, Long id, String email) {
-        Long barbershopId = getBarbershopIdOrThrow(slug);
-
-        AppointmentEntity entity = appointmentRepository
-                .findByIdAndBarbershopId(barbershopId, id)
-                .orElseThrow(() -> new NotFoundException("Appointment not found"));
-
-        validateOwnership(entity, email);
-        validateNotPast(entity.getStartTime(), now());
-
-        // 🔥 MIGRADO A SOFT DELETE
-        entity.setCancelledAt(Instant.now());
-        entity.setCancelToken(null);
-        entity.setCancelTokenExpiresAt(null);
-    }
-
     // VALIDATIONS
 
     private void validateStartTime(LocalDateTime start, LocalDateTime now) {
