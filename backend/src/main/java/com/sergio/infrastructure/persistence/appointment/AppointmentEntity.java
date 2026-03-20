@@ -37,6 +37,17 @@ public class AppointmentEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    // 🔐 cancelación (token)
+    @Column(name = "cancel_token")
+    private String cancelToken;
+
+    @Column(name = "cancel_token_expires_at")
+    private Instant cancelTokenExpiresAt;
+
+    // 🔥 soft delete
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
     public Long getId() {
         return id;
     }
@@ -103,5 +114,37 @@ public class AppointmentEntity {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getCancelToken() {
+        return cancelToken;
+    }
+
+    public void setCancelToken(String cancelToken) {
+        this.cancelToken = cancelToken;
+    }
+
+    public Instant getCancelTokenExpiresAt() {
+        return cancelTokenExpiresAt;
+    }
+
+    public void setCancelTokenExpiresAt(Instant cancelTokenExpiresAt) {
+        this.cancelTokenExpiresAt = cancelTokenExpiresAt;
+    }
+
+    public Instant getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(Instant cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public boolean isCancelled() {
+        return cancelledAt != null;
+    }
+
+    public boolean isTokenValid() {
+        return cancelToken != null && cancelTokenExpiresAt != null;
     }
 }

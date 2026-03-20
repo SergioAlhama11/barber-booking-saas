@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 @ApplicationScoped
 public class AppointmentService {
@@ -45,6 +46,8 @@ public class AppointmentService {
     @Inject
     AppointmentPersistenceMapper appointmentPersistenceMapper;
 
+    // FINDERS
+
     public List<Appointment> findAllByBarbershop(String slug) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
 
@@ -64,7 +67,7 @@ public class AppointmentService {
 
     public List<Appointment> findByEmail(String slug, String email, AppointmentFilter filter) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime now = now();
 
         return appointmentRepository
                 .findByBarbershopIdAndEmail(barbershopId, email)
@@ -78,10 +81,12 @@ public class AppointmentService {
                 .toList();
     }
 
+    // CREATE
+
     @Transactional
     public Appointment create(String slug, Appointment appointment) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime now = now();
 
         validateStartTime(appointment.getStartTime(), now);
         validateBarber(appointment.getBarberId(), barbershopId);
@@ -99,25 +104,51 @@ public class AppointmentService {
         entity.setEndTime(end);
         entity.setCreatedAt(Instant.now());
 
+        // 🔐 TOKEN (CLAVE)
+        entity.setCancelToken(UUID.randomUUID().toString());
+        entity.setCancelTokenExpiresAt(start.toInstant(ZoneOffset.UTC));
+
         appointmentRepository.persist(entity);
 
         return appointmentPersistenceMapper.toDomain(entity);
     }
 
+    // CANCEL BY TOKEN
+
+    @Transactional
+    public void cancelByToken(String token) {
+        AppointmentEntity entity = appointmentRepository
+                .findValidToken(token)
+                .orElseThrow(() -> new NotFoundException("Invalid or expired token"));
+
+        validateNotPast(entity.getStartTime(), now());
+
+        // 🔥 SOFT DELETE
+        entity.setCancelledAt(Instant.now());
+        entity.setCancelToken(null);
+        entity.setCancelTokenExpiresAt(null);
+    }
+
+    // CANCEL DEPRECATED ??
+
     @Transactional
     public void cancelAppointmentByEmail(String slug, Long id, String email) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
         AppointmentEntity entity = appointmentRepository
                 .findByIdAndBarbershopId(barbershopId, id)
                 .orElseThrow(() -> new NotFoundException("Appointment not found"));
 
         validateOwnership(entity, email);
-        validateNotPast(entity.getStartTime(), now);
+        validateNotPast(entity.getStartTime(), now());
 
-        appointmentRepository.delete(entity);
+        // 🔥 MIGRADO A SOFT DELETE
+        entity.setCancelledAt(Instant.now());
+        entity.setCancelToken(null);
+        entity.setCancelTokenExpiresAt(null);
     }
+
+    // VALIDATIONS
 
     private void validateStartTime(LocalDateTime start, LocalDateTime now) {
         if (!start.isAfter(now)) {
@@ -154,6 +185,12 @@ public class AppointmentService {
         if (startTime.isBefore(now)) {
             throw new InvalidAppointmentException("Cannot cancel past appointments");
         }
+    }
+
+    // HELPERS
+
+    private LocalDateTime now() {
+        return LocalDateTime.now(ZoneOffset.UTC);
     }
 
     private Long getBarbershopIdOrThrow(String slug) {

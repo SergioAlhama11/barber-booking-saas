@@ -12,5 +12,8 @@
     <include file="db/changelog/003-create-services.xml"/>
     <include file="db/changelog/004-create-appointments.xml"/>
     <include file="db/changelog/005-add-customer-email-to-appointments.xml"/>
+    <include file="db/changelog/006-add-cancel-token-to-appointments.xml"/>
+    <include file="db/changelog/007-add-cancelled-at-to-appointments.xml"/>
+    <include file="db/changelog/008-make-cancel-token-nullable.xml"/>
 
 </databaseChangeLog>

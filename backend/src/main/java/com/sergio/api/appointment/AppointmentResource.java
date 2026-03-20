@@ -69,6 +69,15 @@ public class AppointmentResource {
     }
 
     @DELETE
+    @Path("/cancel")
+    public Response cancelByToken(
+            @QueryParam("token") @NotBlank String token) {
+
+        appointmentService.cancelByToken(token);
+        return Response.noContent().build();
+    }
+
+    @DELETE
     @Path("/{id}")
     public Response cancel(
             @PathParam("slug") @NotBlank String slug,
