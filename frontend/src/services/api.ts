@@ -73,3 +73,20 @@ export async function createAppointment(
 
   return body;
 }
+
+export async function cancelAppointment(token: string) {
+  const res = await fetch(
+    `${API_URL}/barbershops/barberia-sergio/appointments/cancel?token=${token}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw {
+      status: res.status,
+      message: data?.message || "Unknown error",
+    };
+  }
+}
