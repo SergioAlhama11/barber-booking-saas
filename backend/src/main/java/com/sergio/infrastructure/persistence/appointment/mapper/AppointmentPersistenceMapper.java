@@ -10,6 +10,9 @@ public interface AppointmentPersistenceMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "cancelToken", ignore = true)
+    @Mapping(target = "cancelTokenExpiresAt", ignore = true)
+    @Mapping(target = "cancelledAt", ignore = true)
     AppointmentEntity toEntity(Appointment appointment);
 
     Appointment toDomain(AppointmentEntity appointmentEntity);

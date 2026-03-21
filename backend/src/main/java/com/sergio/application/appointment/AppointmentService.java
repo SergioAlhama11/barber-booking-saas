@@ -1,5 +1,6 @@
 package com.sergio.application.appointment;
 
+import com.sergio.application.notification.AppointmentCreatedEvent;
 import com.sergio.application.service.ServiceService;
 import com.sergio.domain.appointment.Appointment;
 import com.sergio.domain.appointment.AppointmentFilter;
@@ -42,6 +43,9 @@ public class AppointmentService {
 
     @Inject
     ServiceService serviceService;
+
+    @Inject
+    jakarta.enterprise.event.Event<AppointmentCreatedEvent> appointmentCreatedEvent;
 
     @Inject
     AppointmentPersistenceMapper appointmentPersistenceMapper;
@@ -106,9 +110,16 @@ public class AppointmentService {
 
         // 🔐 TOKEN (CLAVE)
         entity.setCancelToken(UUID.randomUUID().toString());
-        entity.setCancelTokenExpiresAt(start.toInstant(ZoneOffset.UTC));
+        entity.setCancelTokenExpiresAt(start.minusHours(1).toInstant(ZoneOffset.UTC));
 
         appointmentRepository.persist(entity);
+
+        // 🔥 EVENTO (CLAVE)
+        appointmentCreatedEvent.fire(new AppointmentCreatedEvent(
+                entity.getCustomerEmail(),
+                entity.getCustomerName(),
+                entity.getCancelToken()
+        ));
 
         return appointmentPersistenceMapper.toDomain(entity);
     }
