@@ -1,5 +1,6 @@
 package com.sergio.domain.appointment;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 public class Appointment {
@@ -8,21 +9,26 @@ public class Appointment {
     private Long barbershopId;
     private Long barberId;
     private Long serviceId;
-    // private String serviceName;
+    private String barberName;
+    private String serviceName;
     private String customerName;
     private String customerEmail;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private Instant cancelledAt;
 
-    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String customerName, String customerEmail, LocalDateTime startTime, LocalDateTime endTime) {
+    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String barberName, String serviceName, String customerName, String customerEmail, LocalDateTime startTime, LocalDateTime endTime, Instant cancelledAt) {
         this.id = id;
         this.barbershopId = barbershopId;
         this.barberId = barberId;
         this.serviceId = serviceId;
+        this.barberName = barberName;
+        this.serviceName = serviceName;
         this.customerName = customerName;
         this.customerEmail = customerEmail;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.cancelledAt = cancelledAt;
     }
 
     public Appointment() {}
@@ -59,6 +65,22 @@ public class Appointment {
         this.serviceId = serviceId;
     }
 
+    public String getBarberName() {
+        return barberName;
+    }
+
+    public void setBarberName(String barberName) {
+        this.barberName = barberName;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
+
     public String getCustomerName() {
         return customerName;
     }
@@ -90,4 +112,8 @@ public class Appointment {
     public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
     }
+
+    public Instant getCancelledAt() { return  cancelledAt; }
+
+    public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
 }

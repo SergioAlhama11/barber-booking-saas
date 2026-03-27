@@ -69,19 +69,25 @@ public class AppointmentService {
                 .orElseThrow(() -> new NotFoundException("Appointment not found"));
     }
 
-    public List<Appointment> findByEmail(String slug, String email, AppointmentFilter filter) {
+    public List<Appointment> findByEmail(
+            String slug,
+            String email,
+            AppointmentFilter filter,
+            int page,
+            int size
+    ) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
         LocalDateTime now = now();
 
         return appointmentRepository
-                .findByBarbershopIdAndEmail(barbershopId, email)
+                .findDetailedByBarbershopIdAndEmail(barbershopId, email, page, size)
                 .stream()
+                .map(appointmentPersistenceMapper::toDomain)
                 .filter(a -> switch (filter) {
-                    case FUTURE -> !a.getStartTime().isBefore(now);
-                    case PAST -> a.getStartTime().isBefore(now);
+                    case FUTURE -> a.getCancelledAt() == null && !a.getStartTime().isBefore(now);
+                    case PAST -> a.getCancelledAt() == null && a.getStartTime().isBefore(now);
                     case ALL -> true;
                 })
-                .map(appointmentPersistenceMapper::toDomain)
                 .toList();
     }
 
