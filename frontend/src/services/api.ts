@@ -90,3 +90,19 @@ export async function cancelAppointment(token: string) {
     };
   }
 }
+
+export async function getAppointmentsByEmail(slug: string, email: string) {
+  const res = await fetch(
+    `${API_URL}/barbershops/${slug}/appointments/by-email?email=${email}`,
+  );
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw {
+      status: res.status,
+      message: data?.message || "Error fetching appointments",
+    };
+  }
+
+  return res.json();
+}
