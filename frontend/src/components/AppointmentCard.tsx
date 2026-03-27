@@ -18,6 +18,7 @@ export default function AppointmentCard({
         padding: "12px",
         borderRadius: "8px",
         marginBottom: "10px",
+        opacity: appointment.cancelledAt ? 0.5 : 1,
       }}
     >
       <p>
@@ -25,7 +26,16 @@ export default function AppointmentCard({
       </p>
 
       <p>
-        <strong>Servicio:</strong> {appointment.serviceId}
+        <strong>Servicio:</strong> {appointment.serviceName}
+      </p>
+
+      <p>
+        <strong>Barbero:</strong> {appointment.barberName}
+      </p>
+
+      <p>
+        <strong>Estado:</strong>{" "}
+        {appointment.cancelledAt ? "Cancelada ❌" : "Activa"}
       </p>
 
       {showCancel && (

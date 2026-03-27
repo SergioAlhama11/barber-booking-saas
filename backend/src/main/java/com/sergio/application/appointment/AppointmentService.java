@@ -124,7 +124,8 @@ public class AppointmentService {
         appointmentCreatedEvent.fire(new AppointmentCreatedEvent(
                 entity.getCustomerEmail(),
                 entity.getCustomerName(),
-                entity.getCancelToken()
+                entity.getCancelToken(),
+                slug
         ));
 
         return appointmentPersistenceMapper.toDomain(entity);

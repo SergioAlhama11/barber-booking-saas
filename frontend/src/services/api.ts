@@ -1,46 +1,48 @@
 const API_URL = "http://localhost:8080";
 
-export async function getServices(slug: string) {
-  const res = await fetch(`${API_URL}/barbershops/${slug}/services`);
+// 🔥 CORE: wrapper común para todas las llamadas
+async function apiFetch(url: string, options?: RequestInit) {
+  const res = await fetch(url, options);
+
+  const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Error fetching services: ${text}`);
+    throw {
+      status: res.status,
+      message: data?.message || "Unexpected error",
+      code: data?.code,
+    };
   }
 
-  return res.json();
+  return data;
 }
 
-export async function getBarbers(slug: string) {
-  const res = await fetch(`${API_URL}/barbershops/${slug}/barbers`);
+// Barbershop
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Error fetching barbers: ${text}`);
-  }
-
-  return res.json();
+export function getServices(slug: string) {
+  return apiFetch(`${API_URL}/barbershops/${slug}/services`);
 }
 
-export async function getAvailability(
+export function getBarbers(slug: string) {
+  return apiFetch(`${API_URL}/barbershops/${slug}/barbers`);
+}
+
+// Availability
+
+export function getAvailability(
   slug: string,
   barberId: number,
   serviceId: number,
   date: string,
 ) {
-  const res = await fetch(
+  return apiFetch(
     `${API_URL}/barbershops/${slug}/availability?barberId=${barberId}&serviceId=${serviceId}&date=${date}`,
   );
-
-  if (!res.ok) {
-    const text = await res.text(); // 👈 DEBUG PRO
-    throw new Error(`Error fetching availability: ${text}`);
-  }
-
-  return res.json();
 }
 
-export async function createAppointment(
+// Appointments
+
+export function createAppointment(
   slug: string,
   data: {
     barberId: number;
@@ -50,59 +52,30 @@ export async function createAppointment(
     startTime: string;
   },
 ) {
-  const res = await fetch(
-    `http://localhost:8080/barbershops/${slug}/appointments`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+  return apiFetch(`${API_URL}/barbershops/${slug}/appointments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
-
-  const body = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    throw {
-      status: res.status,
-      message: body?.message || "Unknown error",
-      code: body?.code,
-    };
-  }
-
-  return body;
+    body: JSON.stringify(data),
+  });
 }
 
-export async function cancelAppointment(token: string) {
-  const res = await fetch(
-    `${API_URL}/barbershops/barberia-sergio/appointments/cancel?token=${token}`,
+export function cancelAppointment(token: string, slug: string) {
+  return apiFetch(
+    `${API_URL}/barbershops/${slug}/appointments/cancel?token=${token}`,
     {
       method: "DELETE",
     },
   );
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw {
-      status: res.status,
-      message: data?.message || "Unknown error",
-    };
-  }
 }
 
-export async function getAppointmentsByEmail(slug: string, email: string) {
-  const res = await fetch(
-    `${API_URL}/barbershops/${slug}/appointments/by-email?email=${email}`,
+export function getAppointmentsByEmail(
+  slug: string,
+  email: string,
+  filter: string = "ALL",
+) {
+  return apiFetch(
+    `${API_URL}/barbershops/${slug}/appointments/by-email?email=${email}&filter=${filter}`,
   );
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw {
-      status: res.status,
-      message: data?.message || "Error fetching appointments",
-    };
-  }
-
-  return res.json();
 }

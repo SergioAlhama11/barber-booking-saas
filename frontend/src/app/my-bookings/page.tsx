@@ -28,7 +28,9 @@ export default function MyBookingsPage() {
         onChange={(e) => setEmail(e.target.value)}
       />
 
-      <button onClick={() => fetchAppointments(email)}>Buscar</button>
+      <button onClick={() => fetchAppointments(email)} disabled={!email}>
+        Buscar
+      </button>
 
       {loading && <p>Cargando...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}

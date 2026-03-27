@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getAppointmentsByEmail, cancelAppointment } from "@/services/api";
+import { getAppointmentsByEmail } from "@/services/api";
 
 export function useAppointments(slug: string) {
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -11,7 +11,7 @@ export function useAppointments(slug: string) {
     setError(null);
 
     try {
-      const data = await getAppointmentsByEmail(slug, email);
+      const data = await getAppointmentsByEmail(slug, email, "ALL");
 
       data.sort(
         (a: any, b: any) =>
@@ -28,13 +28,15 @@ export function useAppointments(slug: string) {
 
   const now = new Date();
 
-  const future = appointments.filter(
-    (a) => new Date(a.startTime) > now && !a.cancelledAt,
-  );
+  const future = appointments.filter((a) => {
+    const start = new Date(a.startTime);
+    return start > new Date() && !a.cancelledAt;
+  });
 
-  const past = appointments.filter(
-    (a) => new Date(a.startTime) <= now && !a.cancelledAt,
-  );
+  const past = appointments.filter((a) => {
+    const start = new Date(a.startTime);
+    return start <= new Date() && !a.cancelledAt;
+  });
 
   const cancelled = appointments.filter((a) => a.cancelledAt);
 

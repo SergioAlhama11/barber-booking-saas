@@ -13,7 +13,14 @@ export default function AppointmentSection({
   showCancel,
   onResend,
 }: Props) {
-  if (!appointments.length) return null;
+  if (!appointments.length) {
+    return (
+      <div style={{ marginTop: 30 }}>
+        <h2>{title}</h2>
+        <p>No hay citas</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: 30 }}>
