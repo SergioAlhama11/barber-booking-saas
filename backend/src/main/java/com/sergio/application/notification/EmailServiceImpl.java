@@ -37,38 +37,72 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private String buildSubject() {
-        return "Confirmación de cita 💈";
+        // 🔥 sin problemas de encoding en MailHog
+        return "Confirmación de cita - Barbería";
     }
 
     private String buildBody(String name, String cancelUrl) {
         return """
         <html>
-        <body style="font-family: Arial, sans-serif; background-color:#f9f9f9; padding:20px;">
-            <div style="max-width:500px; margin:auto; background:white; padding:20px; border-radius:10px;">
+        <body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Arial, sans-serif;">
+            
+            <div style="max-width:520px; margin:40px auto; background:#ffffff; border-radius:10px; padding:24px;">
                 
-                <h2 style="color:#333;">💈 Confirmación de cita</h2>
+                <!-- HEADER -->
+                <h2 style="margin-top:0; color:#222;">
+                    💈 Confirmación de cita
+                </h2>
                 
-                <p>Hola <strong>%s</strong>,</p>
+                <!-- CONTENT -->
+                <p style="color:#333;">Hola <strong>%s</strong>,</p>
                 
-                <p>Tu cita ha sido confirmada correctamente.</p>
+                <p style="color:#333;">
+                    Tu cita ha sido confirmada correctamente.
+                </p>
                 
-                <p>Si necesitas cancelarla, puedes hacerlo desde aquí:</p>
+                <p style="color:#333;">
+                    Si necesitas cancelarla, puedes hacerlo desde aquí:
+                </p>
                 
+                <!-- BUTTON -->
                 <div style="text-align:center; margin:30px 0;">
                     <a href="%s"
-                       style="background:#e63946; color:white; padding:12px 20px;
-                              text-decoration:none; border-radius:5px; font-weight:bold;">
+                       style="display:inline-block;
+                              background-color:#e63946;
+                              color:#ffffff;
+                              padding:12px 22px;
+                              text-decoration:none;
+                              border-radius:6px;
+                              font-weight:bold;">
                         Cancelar cita
                     </a>
                 </div>
                 
-                <p style="font-size:12px; color:#888;">
+                <!-- INFO -->
+                <p style="font-size:13px; color:#555;">
+                    Este enlace es personal y dejará de estar disponible antes de la cita.
+                </p>
+                
+                <!-- FALLBACK -->
+                <p style="font-size:12px; color:#777;">
+                    Si el botón no funciona, copia y pega este enlace en tu navegador:
+                </p>
+                
+                <p style="word-break:break-all;">
+                    <a href="%s">Abrir enlace de cancelación</a>
+                </p>
+                
+                <!-- FOOTER -->
+                <hr style="margin:20px 0; border:none; border-top:1px solid #eee;" />
+                
+                <p style="font-size:12px; color:#999;">
                     Si no solicitaste esta cita, puedes ignorar este mensaje.
                 </p>
                 
             </div>
+        
         </body>
         </html>
-        """.formatted(name, cancelUrl);
+        """.formatted(name, cancelUrl, cancelUrl, cancelUrl);
     }
 }

@@ -21,7 +21,11 @@ public class AppointmentEmailListener {
     public void onAppointmentCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS)
                                      AppointmentCreatedEvent event) {
         try {
-            String cancelUrl = appConfig.getFrontendUrl() + "/cancel?token=" + event.cancelToken();
+            String cancelUrl = appConfig.getFrontendUrl()
+                    + "/barbershops/"
+                    + event.slug()
+                    + "/cancel?token="
+                    + event.cancelToken();
 
             emailService.sendAppointmentConfirmation(
                     event.email(),

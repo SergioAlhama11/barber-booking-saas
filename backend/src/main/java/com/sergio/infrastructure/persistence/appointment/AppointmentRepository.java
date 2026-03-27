@@ -20,19 +20,45 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
         """, barbershopId);
     }
 
-    public List<AppointmentEntity> findByBarbershopIdAndEmail(Long barbershopId, String email) {
-        return list("""
-            barbershopId = ?1
-            and customerEmail = ?2
-            and cancelledAt is null
-        """, barbershopId, email);
-    }
-
     public Optional<AppointmentEntity> findByIdAndBarbershopId(Long barbershopId, Long id) {
         return find("""
             barbershopId = ?1
             and id = ?2
         """, barbershopId, id).firstResultOptional();
+    }
+
+    public List<AppointmentProjection> findDetailedByBarbershopIdAndEmail(
+            Long barbershopId,
+            String email,
+            int page,
+            int size
+    ) {
+        return getEntityManager().createQuery("""
+        SELECT new com.sergio.infrastructure.persistence.appointment.AppointmentProjection(
+            a.id,
+            a.barbershopId,
+            a.barberId,
+            a.serviceId,
+            b.name,
+            s.name,
+            a.customerName,
+            a.customerEmail,
+            a.startTime,
+            a.endTime,
+            a.cancelledAt
+        )
+        FROM AppointmentEntity a
+        JOIN BarberEntity b ON b.id = a.barberId
+        JOIN ServiceEntity s ON s.id = a.serviceId
+        WHERE a.barbershopId = :barbershopId
+          AND a.customerEmail = :email
+        ORDER BY a.startTime DESC
+    """, AppointmentProjection.class)
+                .setParameter("barbershopId", barbershopId)
+                .setParameter("email", email)
+                .setFirstResult(page * size) // 🔥 offset
+                .setMaxResults(size)         // 🔥 limit
+                .getResultList();
     }
 
     // AVAILABILITY

@@ -30,7 +30,10 @@ public class AppointmentResource {
 
     @GET
     public List<AppointmentResponse> getAll(@PathParam("slug") @NotBlank String slug) {
-        return toDtoList(appointmentService.findAllByBarbershop(slug));
+        return appointmentService.findAllByBarbershop(slug)
+                .stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
     @GET
@@ -47,9 +50,14 @@ public class AppointmentResource {
     public List<AppointmentResponse> getByEmail(
             @PathParam("slug") @NotBlank String slug,
             @QueryParam("email") @NotBlank @Email String email,
-            @QueryParam("filter") @DefaultValue("FUTURE") AppointmentFilter filter) {
+            @QueryParam("filter") @DefaultValue("FUTURE") AppointmentFilter filter,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("10") int size) {
 
-        return toDtoList(appointmentService.findByEmail(slug, email, filter));
+        return appointmentService.findByEmail(slug, email, filter, page, size)
+                .stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
     @POST
@@ -75,11 +83,5 @@ public class AppointmentResource {
 
         appointmentService.cancelByToken(token);
         return Response.noContent().build();
-    }
-
-    private List<AppointmentResponse> toDtoList(List<Appointment> appointments) {
-        return appointments.stream()
-                .map(mapper::toDto)
-                .toList();
     }
 }
