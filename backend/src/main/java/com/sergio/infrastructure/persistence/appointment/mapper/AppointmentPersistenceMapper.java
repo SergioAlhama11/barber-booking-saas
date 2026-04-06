@@ -14,6 +14,7 @@ public interface AppointmentPersistenceMapper {
     @Mapping(target = "cancelToken", ignore = true)
     @Mapping(target = "cancelTokenExpiresAt", ignore = true)
     @Mapping(target = "cancelledAt", ignore = true)
+    @Mapping(target = "lastResendAt", ignore = true)
     AppointmentEntity toEntity(Appointment appointment);
 
     @Mapping(target = "barberName", ignore = true)

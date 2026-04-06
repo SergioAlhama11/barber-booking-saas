@@ -8,6 +8,7 @@ export default function BookingForm({
   onEmailChange,
   onSubmit,
   loading,
+  error,
 }: {
   selectedSlot: string;
   customerName: string;
@@ -16,21 +17,22 @@ export default function BookingForm({
   onEmailChange: (v: string) => void;
   onSubmit: () => void;
   loading: boolean;
+  error?: string | null;
 }) {
   return (
-    <div className="mt-6">
-      <p className="font-semibold mb-4">
+    <div className="mt-6 space-y-4">
+      <p className="font-semibold">
         Hora seleccionada: {selectedSlot.slice(0, 5)}
       </p>
 
-      <h2 className="text-xl font-semibold mb-2">Introduzca sus datos:</h2>
+      <h2 className="text-xl font-semibold">Introduzca sus datos:</h2>
 
       <input
         type="text"
         placeholder="Nombre"
         value={customerName}
         onChange={(e) => onNameChange(e.target.value)}
-        className="border p-2 rounded block mb-2 w-full"
+        className="border p-3 rounded w-full"
       />
 
       <input
@@ -38,14 +40,19 @@ export default function BookingForm({
         placeholder="Email"
         value={customerEmail}
         onChange={(e) => onEmailChange(e.target.value)}
-        className="border p-2 rounded block mb-2 w-full"
+        className="border p-3 rounded w-full"
       />
 
+      {error && <div className="text-red-500 text-sm">{error}</div>}
+
       <button
+        type="button" // 🔥 CLAVE
         onClick={onSubmit}
         disabled={loading}
-        className={`mt-4 px-4 py-2 rounded w-full ${
-          loading ? "bg-gray-400 text-white" : "bg-green-500 text-white"
+        className={`w-full py-3 rounded font-semibold transition ${
+          loading
+            ? "bg-gray-400 text-white"
+            : "bg-green-500 hover:bg-green-600 text-white"
         }`}
       >
         {loading ? "Realizando la reserva..." : "Reservar"}

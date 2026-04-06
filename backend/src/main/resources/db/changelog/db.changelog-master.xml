@@ -15,5 +15,7 @@
     <include file="db/changelog/006-add-cancel-token-to-appointments.xml"/>
     <include file="db/changelog/007-add-cancelled-at-to-appointments.xml"/>
     <include file="db/changelog/008-make-cancel-token-nullable.xml"/>
+    <include file="db/changelog/009-add-last-resend-at-to-appointments.xml"/>
+    <include file="db/changelog/010-appointments-hardening.xml"/>
 
 </databaseChangeLog>

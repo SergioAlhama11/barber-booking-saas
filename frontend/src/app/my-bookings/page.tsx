@@ -9,12 +9,12 @@ export default function MyBookingsPage() {
 
   const slug = "barberia-sergio";
 
-  const { future, past, cancelled, loading, error, fetchAppointments } =
+  const { future, past, cancelled, loading, error, fetchAppointments, resend } =
     useAppointments(slug);
 
   function handleResend(id: number) {
     console.log("Reenviar email para cita: ", id);
-    // 🔥 siguiente paso backend
+    resend(id, email);
   }
 
   return (

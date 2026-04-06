@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="appointments-hardening" author="sergio" runInTransaction="true">
+
+        <!-- INDEX: búsquedas por email -->
+        <createIndex tableName="appointments" indexName="idx_appointments_email">
+            <column name="customer_email"/>
+        </createIndex>
+
+        <!-- INDEX: citas futuras -->
+        <createIndex tableName="appointments" indexName="idx_appointments_future">
+            <column name="barbershop_id"/>
+            <column name="customer_email"/>
+            <column name="start_time"/>
+        </createIndex>
+
+        <!-- INDEX: disponibilidad -->
+        <createIndex tableName="appointments" indexName="idx_appointments_barber_time">
+            <column name="barber_id"/>
+            <column name="start_time"/>
+            <column name="end_time"/>
+        </createIndex>
+
+        <!-- 🔥 UNIQUE PARTIAL INDEX (POSTGRESQL PRO) -->
+        <sql>
+            CREATE UNIQUE INDEX uk_appointment_unique_active
+                ON appointments (barber_id, start_time, customer_email)
+                WHERE cancelled_at IS NULL;
+        </sql>
+
+    </changeSet>
+
+</databaseChangeLog>

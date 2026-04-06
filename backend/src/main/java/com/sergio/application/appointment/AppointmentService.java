@@ -1,6 +1,7 @@
 package com.sergio.application.appointment;
 
 import com.sergio.application.notification.AppointmentCreatedEvent;
+import com.sergio.application.security.RedisRateLimiter;
 import com.sergio.application.service.ServiceService;
 import com.sergio.domain.appointment.Appointment;
 import com.sergio.domain.appointment.AppointmentFilter;
@@ -32,6 +33,8 @@ public class AppointmentService {
     private static final LocalTime OPENING_TIME = LocalTime.of(9, 0);
     private static final LocalTime CLOSING_TIME = LocalTime.of(18, 0);
 
+    private static final int MAX_ACTIVE_APPOINTMENTS = 3;
+
     @Inject
     AppointmentRepository appointmentRepository;
 
@@ -49,6 +52,9 @@ public class AppointmentService {
 
     @Inject
     AppointmentPersistenceMapper appointmentPersistenceMapper;
+
+    @Inject
+    RedisRateLimiter redisRateLimiter;
 
     // FINDERS
 
@@ -94,12 +100,21 @@ public class AppointmentService {
     // CREATE
 
     @Transactional
-    public Appointment create(String slug, Appointment appointment) {
+    public Appointment create(String slug, Appointment appointment, String ip) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
         LocalDateTime now = now();
 
+        redisRateLimiter.checkCreateLimit(ip, appointment.getCustomerEmail());
+
         validateStartTime(appointment.getStartTime(), now);
         validateBarber(appointment.getBarberId(), barbershopId);
+
+        validateMaxActiveAppointments(barbershopId, appointment.getCustomerEmail(), now);
+        validateNoDuplicateSlot(
+                appointment.getBarberId(),
+                appointment.getStartTime(),
+                appointment.getCustomerEmail()
+        );
 
         Service service = serviceService.findById(slug, appointment.getServiceId());
 
@@ -114,13 +129,11 @@ public class AppointmentService {
         entity.setEndTime(end);
         entity.setCreatedAt(Instant.now());
 
-        // 🔐 TOKEN (CLAVE)
         entity.setCancelToken(UUID.randomUUID().toString());
         entity.setCancelTokenExpiresAt(start.minusHours(1).toInstant(ZoneOffset.UTC));
 
         appointmentRepository.persist(entity);
 
-        // 🔥 EVENTO (CLAVE)
         appointmentCreatedEvent.fire(new AppointmentCreatedEvent(
                 entity.getCustomerEmail(),
                 entity.getCustomerName(),
@@ -129,6 +142,44 @@ public class AppointmentService {
         ));
 
         return appointmentPersistenceMapper.toDomain(entity);
+    }
+
+    // RESEND CANCEL LINK
+    @Transactional
+    public void resendCancelLink(String slug, Long id, String email, String ip) {
+        redisRateLimiter.checkResendLimit(ip, email);
+
+        Long barbershopId = getBarbershopIdOrThrow(slug);
+
+        AppointmentEntity entity = appointmentRepository
+                .findByIdAndBarbershopId(barbershopId, id)
+                .orElseThrow(() -> new NotFoundException("Appointment not found or access denied"));
+
+        validateOwnership(entity, email);
+
+        if (entity.getCancelledAt() != null) {
+            throw new InvalidAppointmentException("Appointment already cancelled");
+        }
+
+        validateNotPast(entity.getStartTime(), now());
+
+        validateResendRateLimit(entity); // (este puedes mantenerlo 👍)
+
+        String newToken = UUID.randomUUID().toString();
+
+        entity.setCancelToken(newToken);
+        entity.setCancelTokenExpiresAt(
+                entity.getStartTime().minusHours(1).toInstant(ZoneOffset.UTC)
+        );
+
+        entity.setLastResendAt(Instant.now());
+
+        appointmentCreatedEvent.fire(new AppointmentCreatedEvent(
+                entity.getCustomerEmail(),
+                entity.getCustomerName(),
+                newToken,
+                slug
+        ));
     }
 
     // CANCEL BY TOKEN
@@ -158,6 +209,24 @@ public class AppointmentService {
     private void validateBarber(Long barberId, Long barbershopId) {
         if (!barberRepository.existsByIdAndBarbershopId(barberId, barbershopId)) {
             throw new NotFoundException("Barber not found in this barbershop");
+        }
+    }
+
+    private void validateMaxActiveAppointments(Long barbershopId, String email, LocalDateTime now) {
+
+        long active = appointmentRepository.countFutureByEmail(barbershopId, email, now);
+
+        System.out.println("ACTIVE APPOINTMENTS: " + active);
+
+        if (active >= MAX_ACTIVE_APPOINTMENTS) {
+            throw new InvalidAppointmentException("You already have too many active bookings");
+        }
+    }
+
+    private void validateNoDuplicateSlot(Long barberId, LocalDateTime startTime, String email) {
+
+        if (appointmentRepository.existsSameSlot(barberId, startTime, email)) {
+            throw new InvalidAppointmentException("You already booked this time slot");
         }
     }
 
@@ -197,5 +266,16 @@ public class AppointmentService {
                 .firstResultOptional()
                 .map(BarbershopEntity::getId)
                 .orElseThrow(() -> new NotFoundException("Barbershop not found"));
+    }
+
+    private void validateResendRateLimit(AppointmentEntity entity) {
+
+        if (entity.getLastResendAt() != null &&
+                entity.getLastResendAt().isAfter(Instant.now().minusSeconds(60))) {
+
+            throw new InvalidAppointmentException(
+                    "Please wait before requesting another email"
+            );
+        }
     }
 }
