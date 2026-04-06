@@ -61,6 +61,26 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
                 .getResultList();
     }
 
+    // ANTIFRAUDE
+
+    public long countFutureByEmail(Long barbershopId, String email, LocalDateTime now) {
+        return count("""
+            barbershopId = ?1
+            and customerEmail = ?2
+            and cancelledAt is null
+            and startTime > ?3
+        """, barbershopId, email, now);
+    }
+
+    public boolean existsSameSlot(Long barberId, LocalDateTime startTime, String email) {
+        return count("""
+            barberId = ?1
+            and startTime = ?2
+            and customerEmail = ?3
+            and cancelledAt is null
+        """, barberId, startTime, email) > 0;
+    }
+
     // AVAILABILITY
 
     public boolean existsOverlapping(Long barberId, LocalDateTime start, LocalDateTime end) {

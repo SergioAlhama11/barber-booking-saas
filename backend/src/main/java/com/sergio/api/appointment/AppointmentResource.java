@@ -11,11 +11,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 @Path("/barbershops/{slug}/appointments")
 @Produces(MediaType.APPLICATION_JSON)
@@ -27,6 +27,9 @@ public class AppointmentResource {
 
     @Inject
     AppointmentMapper mapper;
+
+    @Context
+    UriInfo uriInfo;
 
     @GET
     public List<AppointmentResponse> getAll(@PathParam("slug") @NotBlank String slug) {
@@ -63,9 +66,17 @@ public class AppointmentResource {
     @POST
     public Response create(
             @PathParam("slug") @NotBlank String slug,
-            @Valid CreateAppointmentRequest request) {
+            @Valid CreateAppointmentRequest request,
+            @HeaderParam("X-Forwarded-For") String forwardedFor,
+            @Context HttpHeaders headers) {
 
-        Appointment created = appointmentService.create(slug, mapper.toDomain(request));
+        String ip = extractClientIp(forwardedFor, headers);
+
+        Appointment created = appointmentService.create(
+                slug,
+                mapper.toDomain(request),
+                ip
+        );
 
         URI location = URI.create(
                 String.format("/barbershops/%s/appointments/%d", slug, created.getId())
@@ -76,6 +87,22 @@ public class AppointmentResource {
                 .build();
     }
 
+    @POST
+    @Path("/{id}/resend-cancel-link")
+    public Response resendCancelLink(
+            @PathParam("slug") String slug,
+            @PathParam("id") Long id,
+            @QueryParam("email") String email,
+            @HeaderParam("X-Forwarded-For") String forwardedFor,
+            @Context jakarta.ws.rs.core.HttpHeaders headers) {
+
+        String ip = extractClientIp(forwardedFor, headers);
+
+        appointmentService.resendCancelLink(slug, id, email, ip);
+
+        return Response.noContent().build();
+    }
+
     @DELETE
     @Path("/cancel")
     public Response cancelByToken(
@@ -83,5 +110,22 @@ public class AppointmentResource {
 
         appointmentService.cancelByToken(token);
         return Response.noContent().build();
+    }
+
+    private String extractClientIp(String forwardedFor, HttpHeaders headers) {
+
+        // 🥇 1. Proxy / producción
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0];
+        }
+
+        // 🥈 2. fallback local (dev)
+        String realIp = headers.getHeaderString("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp;
+        }
+
+        // 🥉 3. último fallback (local dev)
+        return "127.0.0.1";
     }
 }
