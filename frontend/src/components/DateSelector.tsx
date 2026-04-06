@@ -1,43 +1,53 @@
 "use client";
 
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+
+type Props = {
+  date: string;
+  minDate: string;
+  onChange: (date: string) => void;
+  onCheck: () => void;
+  disabled?: boolean; // 🔥 AÑADIDO
+};
+
 export default function DateSelector({
   date,
   minDate,
   onChange,
   onCheck,
-  disabled,
-}: {
-  date: string;
-  minDate: string;
-  onChange: (value: string) => void;
-  onCheck: () => void;
-  disabled: boolean;
-}) {
+  disabled = false,
+}: Props) {
   return (
-    <>
-      <h2 className="text-xl font-semibold mt-6 mb-2">
-        Seleccione la fecha de reserva:
-      </h2>
+    <div className="mt-6 space-y-4">
+      <h2 className="text-lg font-semibold">Selecciona la fecha</h2>
 
-      <div className="flex gap-2">
-        <input
-          type="date"
-          value={date}
-          min={minDate}
-          onChange={(e) => onChange(e.target.value)}
-          className="border p-2 rounded"
+      <div className="bg-gray-900 p-4 rounded-xl">
+        <DayPicker
+          mode="single"
+          selected={new Date(date)}
+          onSelect={(d) => {
+            if (!d) return;
+            onChange(d.toISOString().split("T")[0]);
+          }}
+          disabled={{ before: new Date(minDate) }}
         />
-
-        <button
-          onClick={onCheck}
-          disabled={disabled}
-          className={`px-4 py-2 rounded ${
-            disabled ? "bg-gray-300 text-gray-500" : "bg-blue-500 text-white"
-          }`}
-        >
-          Comprobar disponibilidad
-        </button>
       </div>
-    </>
+
+      <button
+        onClick={onCheck}
+        disabled={disabled}
+        className={`
+          w-full py-3 rounded-xl font-medium transition
+          ${
+            disabled
+              ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 text-white"
+          }
+        `}
+      >
+        Ver disponibilidad
+      </button>
+    </div>
   );
 }
