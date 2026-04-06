@@ -100,6 +100,7 @@ export function createAppointment(
     customerName: string;
     customerEmail: string;
     startTime: string;
+    source?: string;
   },
 ) {
   return apiFetch<{ id: number }>(
