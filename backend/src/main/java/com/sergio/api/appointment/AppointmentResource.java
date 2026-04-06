@@ -15,7 +15,6 @@ import jakarta.ws.rs.core.*;
 
 import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 
 @Path("/barbershops/{slug}/appointments")
 @Produces(MediaType.APPLICATION_JSON)
