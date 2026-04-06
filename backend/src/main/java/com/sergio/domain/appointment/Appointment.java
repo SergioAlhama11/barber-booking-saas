@@ -16,8 +16,9 @@ public class Appointment {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Instant cancelledAt;
+    private String source;
 
-    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String barberName, String serviceName, String customerName, String customerEmail, LocalDateTime startTime, LocalDateTime endTime, Instant cancelledAt) {
+    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String barberName, String serviceName, String customerName, String customerEmail, LocalDateTime startTime, LocalDateTime endTime, Instant cancelledAt, String source) {
         this.id = id;
         this.barbershopId = barbershopId;
         this.barberId = barberId;
@@ -29,6 +30,7 @@ public class Appointment {
         this.startTime = startTime;
         this.endTime = endTime;
         this.cancelledAt = cancelledAt;
+        this.source = source;
     }
 
     public Appointment() {}
@@ -116,4 +118,12 @@ public class Appointment {
     public Instant getCancelledAt() { return  cancelledAt; }
 
     public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
 }

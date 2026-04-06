@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Service, Barber } from "@/types";
 import { getAvailability, createAppointment } from "@/services/api";
 import { useRouter } from "next/navigation";
@@ -21,7 +21,20 @@ export function useBooking(slug: string) {
   const [loading, setLoading] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
+  // 🔥 TRACKING SOURCE
+  const [source, setSource] = useState<string>("direct");
+
   const [error, setError] = useState<string | null>(null);
+
+  // 🔥 CAPTURAR ?src=qr
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const src = params.get("src");
+
+    if (src) {
+      setSource(src);
+    }
+  }, []);
 
   function resetSearch() {
     setSlots([]);
@@ -105,11 +118,11 @@ export function useBooking(slug: string) {
       customerName,
       customerEmail,
       startTime: `${date}T${selectedSlot}`,
+      source, // 🔥 CLAVE
     });
 
     setLoading(false);
 
-    // 🔴 AQUÍ ESTÁ LA CLAVE
     if (response.error) {
       console.log("UI ERROR:", response.message);
       setError(response.message || "Error al reservar cita");
@@ -121,7 +134,6 @@ export function useBooking(slug: string) {
       return;
     }
 
-    // ✅ SOLO SI TODO OK
     router.push(
       `/barbershops/${slug}/booking/confirmation/${response.data.id}`,
     );
@@ -140,6 +152,7 @@ export function useBooking(slug: string) {
     loading,
     loadingSlots,
     error,
+    source, // opcional (por si quieres debuggear)
 
     setCustomerName,
     setCustomerEmail,
