@@ -45,7 +45,8 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.customerEmail,
             a.startTime,
             a.endTime,
-            a.cancelledAt
+            a.cancelledAt,
+            a.source
         )
         FROM AppointmentEntity a
         JOIN BarberEntity b ON b.id = a.barberId
@@ -59,6 +60,35 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
                 .setFirstResult(page * size) // 🔥 offset
                 .setMaxResults(size)         // 🔥 limit
                 .getResultList();
+    }
+
+    public Optional<AppointmentProjection> findDetailedById(Long barbershopId, Long id) {
+        List<AppointmentProjection> result = getEntityManager().createQuery("""
+        SELECT new com.sergio.infrastructure.persistence.appointment.AppointmentProjection(
+            a.id,
+            a.barbershopId,
+            a.barberId,
+            a.serviceId,
+            b.name,
+            s.name,
+            a.customerName,
+            a.customerEmail,
+            a.startTime,
+            a.endTime,
+            a.cancelledAt,
+            a.source
+        )
+        FROM AppointmentEntity a
+        JOIN BarberEntity b ON b.id = a.barberId
+        JOIN ServiceEntity s ON s.id = a.serviceId
+        WHERE a.barbershopId = :barbershopId
+          AND a.id = :id
+    """, AppointmentProjection.class)
+                .setParameter("barbershopId", barbershopId)
+                .setParameter("id", id)
+                .getResultList();
+
+        return result.stream().findFirst();
     }
 
     // ANTIFRAUDE

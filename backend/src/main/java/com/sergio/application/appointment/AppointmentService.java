@@ -1,6 +1,7 @@
 package com.sergio.application.appointment;
 
 import com.sergio.application.notification.AppointmentCreatedEvent;
+import com.sergio.application.qr.QrTrackingService;
 import com.sergio.application.security.RedisRateLimiter;
 import com.sergio.application.service.ServiceService;
 import com.sergio.domain.appointment.Appointment;
@@ -56,6 +57,9 @@ public class AppointmentService {
     @Inject
     RedisRateLimiter redisRateLimiter;
 
+    @Inject
+    QrTrackingService qrTrackingService;
+
     // FINDERS
 
     public List<Appointment> findAllByBarbershop(String slug) {
@@ -70,7 +74,8 @@ public class AppointmentService {
     public Appointment findById(String slug, Long id) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
 
-        return appointmentRepository.findByIdAndBarbershopId(barbershopId, id)
+        return appointmentRepository
+                .findDetailedById(barbershopId, id)
                 .map(appointmentPersistenceMapper::toDomain)
                 .orElseThrow(() -> new NotFoundException("Appointment not found"));
     }
@@ -101,11 +106,14 @@ public class AppointmentService {
 
     @Transactional
     public Appointment create(String slug, Appointment appointment, String ip) {
+
         Long barbershopId = getBarbershopIdOrThrow(slug);
         LocalDateTime now = now();
 
+        // 🔐 rate limit
         redisRateLimiter.checkCreateLimit(ip, appointment.getCustomerEmail());
 
+        // ✅ validaciones
         validateStartTime(appointment.getStartTime(), now);
         validateBarber(appointment.getBarberId(), barbershopId);
 
@@ -116,6 +124,7 @@ public class AppointmentService {
                 appointment.getCustomerEmail()
         );
 
+        // 🧠 calcular duración
         Service service = serviceService.findById(slug, appointment.getServiceId());
 
         LocalDateTime start = appointment.getStartTime();
@@ -124,7 +133,9 @@ public class AppointmentService {
         validateWorkingHours(start, end);
         validateNoOverlap(appointment.getBarberId(), start, end);
 
+        // 💾 persist
         AppointmentEntity entity = appointmentPersistenceMapper.toEntity(appointment);
+
         entity.setBarbershopId(barbershopId);
         entity.setEndTime(end);
         entity.setCreatedAt(Instant.now());
@@ -134,6 +145,10 @@ public class AppointmentService {
 
         appointmentRepository.persist(entity);
 
+        // 📊 tracking conversión (después de persistir)
+        trackQrConversionIfNeeded(slug, appointment);
+
+        // 📧 evento email
         appointmentCreatedEvent.fire(new AppointmentCreatedEvent(
                 entity.getCustomerEmail(),
                 entity.getCustomerName(),
@@ -141,7 +156,10 @@ public class AppointmentService {
                 slug
         ));
 
-        return appointmentPersistenceMapper.toDomain(entity);
+        return appointmentRepository
+                .findDetailedById(barbershopId, entity.getId())
+                .map(appointmentPersistenceMapper::toDomain)
+                .orElseThrow(() -> new IllegalStateException("Created appointment not found"));
     }
 
     // RESEND CANCEL LINK
@@ -277,5 +295,21 @@ public class AppointmentService {
                     "Please wait before requesting another email"
             );
         }
+    }
+    private void trackQrConversionIfNeeded(String slug, Appointment appointment) {
+
+        String source = appointment.getSource();
+
+        if (!isQrSource(source)) {
+            return;
+        }
+
+        qrTrackingService.incrementConversion(slug);
+    }
+
+    private boolean isQrSource(String source) {
+        return "qr".equalsIgnoreCase(
+                source != null ? source : "direct"
+        );
     }
 }

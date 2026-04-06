@@ -77,9 +77,9 @@ public class AppointmentResource {
                 ip
         );
 
-        URI location = URI.create(
-                String.format("/barbershops/%s/appointments/%d", slug, created.getId())
-        );
+        URI location = uriInfo.getAbsolutePathBuilder()
+                .path(String.valueOf(created.getId()))
+                .build();
 
         return Response.created(location)
                 .entity(mapper.toDto(created))

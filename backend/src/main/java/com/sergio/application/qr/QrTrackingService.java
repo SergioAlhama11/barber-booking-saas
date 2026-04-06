@@ -8,15 +8,42 @@ import jakarta.inject.Inject;
 @ApplicationScoped
 public class QrTrackingService {
 
-    private static final String PREFIX = "qr:scans:";
+    private static final String SCANS_PREFIX = "qr:scans:";
+    private static final String CONVERSIONS_PREFIX = "qr:conversions:";
 
     @Inject
     RedisDataSource redis;
 
-    public void increment(String slug) {
-        ValueCommands<String, String> commands = redis.value(String.class);
+    // =========================
+    // SCANS
+    // =========================
 
-        String key = PREFIX + slug;
+    public void incrementScan(String slug) {
+        increment(SCANS_PREFIX + slug);
+    }
+
+    public int getScans(String slug) {
+        return get(SCANS_PREFIX + slug);
+    }
+
+    // =========================
+    // CONVERSIONS
+    // =========================
+
+    public void incrementConversion(String slug) {
+        increment(CONVERSIONS_PREFIX + slug);
+    }
+
+    public int getConversions(String slug) {
+        return get(CONVERSIONS_PREFIX + slug);
+    }
+
+    // =========================
+    // INTERNAL HELPERS (PRO)
+    // =========================
+
+    private void increment(String key) {
+        ValueCommands<String, String> commands = redis.value(String.class);
 
         String current = commands.get(key);
 
@@ -25,10 +52,10 @@ public class QrTrackingService {
         commands.set(key, String.valueOf(count + 1));
     }
 
-    public int getCount(String slug) {
+    private int get(String key) {
         ValueCommands<String, String> commands = redis.value(String.class);
 
-        String value = commands.get(PREFIX + slug);
+        String value = commands.get(key);
 
         return value != null ? Integer.parseInt(value) : 0;
     }

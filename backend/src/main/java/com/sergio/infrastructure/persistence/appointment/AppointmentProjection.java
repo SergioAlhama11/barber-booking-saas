@@ -14,5 +14,6 @@ public record AppointmentProjection(
         String customerEmail,
         LocalDateTime startTime,
         LocalDateTime endTime,
-        Instant cancelledAt
+        Instant cancelledAt,
+        String source
 ) {}

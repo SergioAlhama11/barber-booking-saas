@@ -51,6 +51,9 @@ public class AppointmentEntity {
     @Column(name = "last_resend_at")
     private Instant lastResendAt;
 
+    @Column(name = "source")
+    private String source;
+
     public Long getId() {
         return id;
     }
@@ -146,6 +149,14 @@ public class AppointmentEntity {
     public Instant getLastResendAt() { return lastResendAt; }
 
     public void setLastResendAt(Instant lastResendAt) { this.lastResendAt = lastResendAt; }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
 
     public boolean isCancelled() {
         return cancelledAt != null;

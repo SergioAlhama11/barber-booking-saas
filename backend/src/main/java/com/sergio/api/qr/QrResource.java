@@ -8,7 +8,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 
-@Path("/barbershops/{slug}/qr")
+@Path("/barbershops/{slug}/qr/pdf")
 public class QrResource {
 
     @Inject
