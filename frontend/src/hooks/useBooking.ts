@@ -9,7 +9,6 @@ export function useBooking(slug: string) {
   const today = new Date().toISOString().split("T")[0];
   const router = useRouter();
 
-  // STATE
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -24,24 +23,15 @@ export function useBooking(slug: string) {
 
   const [error, setError] = useState<string | null>(null);
 
-  // HELPERS
   function resetSearch() {
     setSlots([]);
     setSelectedSlot(null);
     setHasSearched(false);
   }
 
-  function resetForm() {
-    setCustomerName("");
-    setCustomerEmail("");
-    setSelectedSlot(null);
-  }
-
   function clearError() {
     setError(null);
   }
-
-  // ACTIONS
 
   function selectService(service: Service) {
     clearError();
@@ -73,14 +63,19 @@ export function useBooking(slug: string) {
     try {
       setLoadingSlots(true);
 
-      const data = await getAvailability(
+      const res = await getAvailability(
         slug,
         selectedBarber.id,
         selectedService.id,
         date,
       );
 
-      setSlots(data.slots);
+      if (res.error || !res.data) {
+        setError(res.message || "Error loading availability");
+        return;
+      }
+
+      setSlots(res.data.slots);
       setHasSearched(true);
     } catch {
       setError("Error loading availability");
@@ -101,38 +96,38 @@ export function useBooking(slug: string) {
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      await createAppointment(slug, {
-        barberId: selectedBarber.id,
-        serviceId: selectedService.id,
-        customerName,
-        customerEmail,
-        startTime: `${date}T${selectedSlot}`,
-      });
+    const response = await createAppointment(slug, {
+      barberId: selectedBarber.id,
+      serviceId: selectedService.id,
+      customerName,
+      customerEmail,
+      startTime: `${date}T${selectedSlot}`,
+    });
 
-      router.push(
-        `/booking/confirmation?date=${date}&time=${selectedSlot.slice(0, 5)}&barber=${encodeURIComponent(selectedBarber.name)}&service=${encodeURIComponent(selectedService.name)}&email=${encodeURIComponent(customerEmail)}`,
-      );
-    } catch (error: any) {
-      if (error.status === 409) {
-        setError("This slot was just booked. Showing updated availability...");
-        setSelectedSlot(null); // 👈 CLAVE
-        await loadAvailability();
-      } else if (error.status === 400) {
-        setError(error.message);
-      } else {
-        setError("Unexpected error. Please try again.");
-      }
-    } finally {
-      setLoading(false);
+    setLoading(false);
+
+    // 🔴 AQUÍ ESTÁ LA CLAVE
+    if (response.error) {
+      console.log("UI ERROR:", response.message);
+      setError(response.message || "Error al reservar cita");
+      return;
     }
+
+    if (!response.data) {
+      setError("Respuesta inválida del servidor");
+      return;
+    }
+
+    // ✅ SOLO SI TODO OK
+    router.push(
+      `/barbershops/${slug}/booking/confirmation/${response.data.id}`,
+    );
   }
 
   return {
-    // state
     today,
     selectedService,
     selectedBarber,
@@ -146,11 +141,9 @@ export function useBooking(slug: string) {
     loadingSlots,
     error,
 
-    // setters directos
     setCustomerName,
     setCustomerEmail,
 
-    // actions
     selectService,
     selectBarber,
     changeDate,

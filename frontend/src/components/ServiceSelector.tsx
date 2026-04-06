@@ -7,10 +7,20 @@ export default function ServiceSelector({
   selectedService,
   onSelect,
 }: {
-  services: Service[];
+  services: Service[] | null | undefined;
   selectedService: Service | null;
   onSelect: (service: Service) => void;
 }) {
+  // 🔴 loading / null safety
+  if (!services) {
+    return <p className="text-gray-500">Cargando servicios...</p>;
+  }
+
+  // 🔴 empty state
+  if (services.length === 0) {
+    return <p className="text-gray-500">No hay servicios disponibles</p>;
+  }
+
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">
@@ -22,7 +32,7 @@ export default function ServiceSelector({
           <button
             key={s.id}
             onClick={() => onSelect(s)}
-            className={`w-full border p-3 rounded text-left ${
+            className={`w-full border p-3 rounded text-left transition ${
               selectedService?.id === s.id
                 ? "bg-black text-white"
                 : "hover:bg-gray-100"
