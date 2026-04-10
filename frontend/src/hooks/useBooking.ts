@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Service, Barber } from "@/types";
 import { getAvailability, createAppointment } from "@/services/api";
 import { useRouter } from "next/navigation";
+import {
+  buildUTCDateTime,
+  getTodayLocal,
+  formatLocalDate,
+} from "@/services/dateService";
 
 const STORAGE_KEY = "booking_state";
 
 export function useBooking(slug: string) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayLocal();
   const router = useRouter();
-
-  // =========================
-  // STATE
-  // =========================
 
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
@@ -33,11 +34,12 @@ export function useBooking(slug: string) {
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<string>("direct");
 
+  const hasAutoScrolled = useRef(false);
+
   // =========================
   // INIT
   // =========================
 
-  // Persistencia
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
 
@@ -62,13 +64,21 @@ export function useBooking(slug: string) {
     );
   }, [selectedService, selectedBarber]);
 
-  // Tracking source (?src=qr)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const src = params.get("src");
-
     if (src) setSource(src);
   }, []);
+
+  // =========================
+  // AUTOLOAD
+  // =========================
+
+  useEffect(() => {
+    if (selectedBarber && selectedService) {
+      loadAvailability(date);
+    }
+  }, [selectedBarber, selectedService, date]);
 
   // =========================
   // HELPERS
@@ -79,14 +89,11 @@ export function useBooking(slug: string) {
     setSelectedSlot(null);
     setHasSearched(false);
     setSuggestedDate(null);
+    hasAutoScrolled.current = false;
   }
 
   function clearError() {
     setError(null);
-  }
-
-  function formatDate(date: Date) {
-    return date.toISOString().split("T")[0];
   }
 
   // =========================
@@ -121,14 +128,16 @@ export function useBooking(slug: string) {
   // SMART AVAILABILITY
   // =========================
 
-  async function findNextAvailableDate(): Promise<string | null> {
+  async function findNextAvailableDate(fromDate: string) {
     if (!selectedBarber || !selectedService) return null;
 
-    for (let i = 1; i <= 7; i++) {
-      const next = new Date(date);
+    const base = new Date(fromDate);
+
+    for (let i = 1; i <= 14; i++) {
+      const next = new Date(base);
       next.setDate(next.getDate() + i);
 
-      const formatted = formatDate(next);
+      const formatted = formatLocalDate(next);
 
       const res = await getAvailability(
         slug,
@@ -151,18 +160,20 @@ export function useBooking(slug: string) {
   // LOAD AVAILABILITY
   // =========================
 
-  async function loadAvailability() {
+  async function loadAvailability(customDate?: string) {
     if (!selectedBarber || !selectedService) return;
 
     try {
       setLoadingSlots(true);
       setSuggestedDate(null);
 
+      const targetDate = customDate ?? date;
+
       const res = await getAvailability(
         slug,
         selectedBarber.id,
         selectedService.id,
-        date,
+        targetDate,
       );
 
       if (res.error || !res.data) {
@@ -176,13 +187,13 @@ export function useBooking(slug: string) {
       setHasSearched(true);
 
       if (slots.length > 0) {
-        // 🔥 AUTO SELECT PRIMER SLOT
-        setSelectedSlot(slots[0]);
+        setSelectedSlot((prev) => prev ?? slots[0]); // 🔥 no sobrescribe selección manual
       } else {
-        const next = await findNextAvailableDate();
+        const next = await findNextAvailableDate(targetDate);
         setSuggestedDate(next);
       }
-    } catch {
+    } catch (e) {
+      console.error("LOAD ERROR", e);
       setError("Error loading availability");
     } finally {
       setLoadingSlots(false);
@@ -209,12 +220,14 @@ export function useBooking(slug: string) {
       setLoading(true);
       setError(null);
 
+      const startTime = buildUTCDateTime(date, selectedSlot);
+
       const response = await createAppointment(slug, {
         barberId: selectedBarber.id,
         serviceId: selectedService.id,
         customerName,
         customerEmail,
-        startTime: `${date}T${selectedSlot}`,
+        startTime,
         source,
       });
 
@@ -233,38 +246,27 @@ export function useBooking(slug: string) {
     }
   }
 
-  // =========================
-  // RETURN
-  // =========================
-
   return {
     today,
-
     selectedService,
     selectedBarber,
     selectedSlot,
-
     date,
     slots,
     hasSearched,
     suggestedDate,
-
     customerName,
     customerEmail,
-
     loading,
     loadingSlots,
     error,
     source,
-
     setCustomerName,
     setCustomerEmail,
-
     selectService,
     selectBarber,
     changeDate,
     selectSlot,
-
     loadAvailability,
     book,
   };

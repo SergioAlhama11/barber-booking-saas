@@ -13,6 +13,9 @@ import SlotSkeleton from "./SlotSkeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef } from "react";
 
+import { formatSmartDate } from "@/services/dateService";
+import { formatTimeSlot } from "@/services/dateService";
+
 export default function Booking({
   services,
   barbers,
@@ -42,14 +45,6 @@ export default function Booking({
   // =========================
 
   useEffect(() => {
-    if (booking.selectedService) scrollTo(barberRef);
-  }, [booking.selectedService]);
-
-  useEffect(() => {
-    if (booking.selectedBarber) scrollTo(dateRef);
-  }, [booking.selectedBarber]);
-
-  useEffect(() => {
     if (booking.hasSearched) scrollTo(slotsRef);
   }, [booking.hasSearched]);
 
@@ -67,7 +62,40 @@ export default function Booking({
   };
 
   return (
-    <div className="p-6 max-w-xl mx-auto space-y-6">
+    <div className="p-6 max-w-md w-full mx-auto space-y-6">
+      {booking.selectedService && booking.selectedBarber && (
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border border-gray-800 p-3 rounded-xl"
+        >
+          <div className="flex justify-between items-center text-sm">
+            <div>
+              <p className="font-medium text-white">
+                {booking.selectedService.name}
+              </p>
+
+              <p className="text-xs text-gray-400">
+                {booking.selectedService.durationMinutes} min
+                {booking.selectedService.price &&
+                  ` · ${booking.selectedService.price}€`}
+              </p>
+
+              <p className="text-gray-400 text-xs">
+                {booking.selectedBarber.name}
+              </p>
+            </div>
+
+            {booking.selectedSlot && (
+              <div className="text-right">
+                <p className="text-blue-400 font-semibold">
+                  {formatTimeSlot(booking.selectedSlot)}
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
       {/* ERROR GLOBAL */}
       <AnimatePresence>
         {booking.error && (
@@ -104,6 +132,9 @@ export default function Booking({
             <BarberSelector
               barbers={barbers}
               selectedBarber={booking.selectedBarber}
+              selectedServiceId={booking.selectedService?.id ?? null}
+              slug={slug}
+              date={booking.date}
               onSelect={booking.selectBarber}
             />
           </motion.div>
@@ -153,15 +184,32 @@ export default function Booking({
             />
 
             {/* 👉 SUGERENCIA AUTOMÁTICA */}
-            {booking.suggestedDate && (
-              <div className="mt-4 text-center text-sm text-yellow-400">
-                👉 Próxima disponibilidad:{" "}
-                <button
-                  onClick={() => booking.changeDate(booking.suggestedDate!)}
-                  className="underline"
-                >
-                  {booking.suggestedDate}
-                </button>
+            {booking.slots.length === 0 && (
+              <div className="mt-4 text-center space-y-2">
+                <p className="text-red-400 font-medium">
+                  ❌ No quedan huecos este día
+                </p>
+
+                {booking.suggestedDate && (
+                  <>
+                    {/* 👇 AQUÍ VA */}
+                    <p className="text-gray-400 text-xs">
+                      Próximo hueco disponible
+                    </p>
+
+                    <button
+                      onClick={async () => {
+                        const next = booking.suggestedDate!;
+                        booking.changeDate(next);
+                        await booking.loadAvailability(next);
+                      }}
+                      className="text-yellow-300 underline text-sm hover:text-yellow-200 transition"
+                    >
+                      👉 Ver disponibilidad{" "}
+                      {formatSmartDate(booking.suggestedDate)}
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </motion.div>
