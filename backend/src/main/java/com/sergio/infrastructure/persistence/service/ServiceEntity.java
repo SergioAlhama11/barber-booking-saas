@@ -2,6 +2,7 @@ package com.sergio.infrastructure.persistence.service;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -23,6 +24,9 @@ public class ServiceEntity {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Column(nullable = false)
+    private BigDecimal price;
 
     public Long getId() {
         return id;
@@ -62,5 +66,13 @@ public class ServiceEntity {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 }
