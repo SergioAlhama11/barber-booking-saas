@@ -13,12 +13,13 @@ public class Appointment {
     private String serviceName;
     private String customerName;
     private String customerEmail;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private Instant startTime;
+    private Instant endTime;
     private Instant cancelledAt;
     private String source;
+    private int calendarVersion;
 
-    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String barberName, String serviceName, String customerName, String customerEmail, LocalDateTime startTime, LocalDateTime endTime, Instant cancelledAt, String source) {
+    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String barberName, String serviceName, String customerName, String customerEmail, Instant startTime, Instant endTime, Instant cancelledAt, String source, int calendarVersion) {
         this.id = id;
         this.barbershopId = barbershopId;
         this.barberId = barberId;
@@ -31,6 +32,7 @@ public class Appointment {
         this.endTime = endTime;
         this.cancelledAt = cancelledAt;
         this.source = source;
+        this.calendarVersion = calendarVersion;
     }
 
     public Appointment() {}
@@ -99,19 +101,19 @@ public class Appointment {
         this.customerEmail = customerEmail;
     }
 
-    public LocalDateTime getStartTime() {
+    public Instant getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(LocalDateTime startTime) {
+    public void setStartTime(Instant startTime) {
         this.startTime = startTime;
     }
 
-    public LocalDateTime getEndTime() {
+    public Instant getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(LocalDateTime endTime) {
+    public void setEndTime(Instant endTime) {
         this.endTime = endTime;
     }
 
@@ -125,5 +127,13 @@ public class Appointment {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public int getCalendarVersion() {
+        return calendarVersion;
+    }
+
+    public void setCalendarVersion(int calendarVersion) {
+        this.calendarVersion = calendarVersion;
     }
 }

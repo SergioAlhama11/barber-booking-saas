@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 public record CreateAppointmentRequest(
@@ -11,6 +12,6 @@ public record CreateAppointmentRequest(
         @NotNull Long serviceId,
         @NotBlank String customerName,
         @NotBlank @Email String customerEmail,
-        @NotNull LocalDateTime startTime,
+        @NotNull Instant startTime,
         String source
 ) {}

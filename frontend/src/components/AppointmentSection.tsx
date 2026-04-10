@@ -1,10 +1,13 @@
+"use client";
+
 import AppointmentCard from "./AppointmentCard";
 
-type Props = {
+type SectionProps = {
   title: string;
   appointments: any[];
   showCancel?: boolean;
   onResend?: (id: number) => void;
+  onClick?: (appointment: any) => void;
 };
 
 export default function AppointmentSection({
@@ -12,28 +15,29 @@ export default function AppointmentSection({
   appointments,
   showCancel,
   onResend,
-}: Props) {
-  if (!appointments.length) {
-    return (
-      <div style={{ marginTop: 30 }}>
-        <h2>{title}</h2>
-        <p>No hay citas</p>
-      </div>
-    );
+  onClick,
+}: SectionProps) {
+  if (!appointments || appointments.length === 0) {
+    return null;
   }
 
   return (
-    <div style={{ marginTop: 30 }}>
-      <h2>{title}</h2>
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold">{title}</h2>
 
-      {appointments.map((a) => (
-        <AppointmentCard
-          key={a.id}
-          appointment={a}
-          showCancel={showCancel}
-          onResend={onResend}
-        />
-      ))}
+      {appointments.map((a) => {
+        const isCancelled = !!a.cancelledAt;
+
+        return (
+          <AppointmentCard
+            key={a.id}
+            appointment={a}
+            showCancel={showCancel}
+            onResend={onResend}
+            onClick={!isCancelled && onClick ? () => onClick(a) : undefined}
+          />
+        );
+      })}
     </div>
   );
 }

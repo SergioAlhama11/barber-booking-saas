@@ -1,26 +1,72 @@
 @import "tailwindcss";
 
+/* =========================
+   THEME
+   ========================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* =========================
+   REACT DAY PICKER SAFE MODE
+   ========================= */
+
+.rdp {
+  width: 100%;
+  --rdp-color: #e5e7eb;
+  --rdp-accent-color: #2563eb;
+}
+
+/* NO TOCAR display interno */
+
+/* HEADER */
+.rdp-caption_label {
+  color: white;
+  font-weight: 600;
+}
+
+/* WEEK DAYS */
+.rdp-head_cell {
+  color: #6b7280;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* DAYS */
+.rdp-day {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  color: #9ca3af;
+}
+
+/* HOVER */
+.rdp-day:hover {
+  background-color: #1f2937;
+  color: white;
+}
+
+/* TODAY */
+.rdp-day_today {
+  border: 1px solid #3b82f6;
+  color: white;
+}
+
+/* SELECTED */
+.rdp-day_selected {
+  background-color: #2563eb !important;
+  color: white !important;
 }

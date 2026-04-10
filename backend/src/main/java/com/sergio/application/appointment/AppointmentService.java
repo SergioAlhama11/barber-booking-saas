@@ -21,10 +21,10 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +33,8 @@ public class AppointmentService {
 
     private static final LocalTime OPENING_TIME = LocalTime.of(9, 0);
     private static final LocalTime CLOSING_TIME = LocalTime.of(18, 0);
+
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     private static final int MAX_ACTIVE_APPOINTMENTS = 3;
 
@@ -88,7 +90,7 @@ public class AppointmentService {
             int size
     ) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
-        LocalDateTime now = now();
+        Instant now = now();
 
         return appointmentRepository
                 .findDetailedByBarbershopIdAndEmail(barbershopId, email, page, size)
@@ -108,7 +110,7 @@ public class AppointmentService {
     public Appointment create(String slug, Appointment appointment, String ip) {
 
         Long barbershopId = getBarbershopIdOrThrow(slug);
-        LocalDateTime now = now();
+        Instant now = now();
 
         // 🔐 rate limit
         redisRateLimiter.checkCreateLimit(ip, appointment.getCustomerEmail());
@@ -127,8 +129,8 @@ public class AppointmentService {
         // 🧠 calcular duración
         Service service = serviceService.findById(slug, appointment.getServiceId());
 
-        LocalDateTime start = appointment.getStartTime();
-        LocalDateTime end = start.plusMinutes(service.getDurationMinutes());
+        Instant start = appointment.getStartTime();
+        Instant end = start.plus(Duration.ofMinutes(service.getDurationMinutes()));
 
         validateWorkingHours(start, end);
         validateNoOverlap(appointment.getBarberId(), start, end);
@@ -138,10 +140,10 @@ public class AppointmentService {
 
         entity.setBarbershopId(barbershopId);
         entity.setEndTime(end);
-        entity.setCreatedAt(Instant.now());
+        entity.setCreatedAt(now);
 
         entity.setCancelToken(UUID.randomUUID().toString());
-        entity.setCancelTokenExpiresAt(start.minusHours(1).toInstant(ZoneOffset.UTC));
+        entity.setCancelTokenExpiresAt(start.minusSeconds(3600));
 
         appointmentRepository.persist(entity);
 
@@ -162,12 +164,71 @@ public class AppointmentService {
                 .orElseThrow(() -> new IllegalStateException("Created appointment not found"));
     }
 
+    @Transactional
+    public Appointment reschedule(String slug, Long id, Instant newStartTime) {
+
+        Long barbershopId = getBarbershopIdOrThrow(slug);
+        Instant now = now();
+
+        AppointmentEntity entity = appointmentRepository
+                .findByIdAndBarbershopId(barbershopId, id)
+                .orElseThrow(() -> new NotFoundException("Appointment not found"));
+
+        if (entity.getCancelledAt() != null) {
+            throw new InvalidAppointmentException("Cannot reschedule a cancelled appointment");
+        }
+
+        // 🔥 evitar update innecesario
+        if (entity.getStartTime().equals(newStartTime)) {
+            return appointmentRepository
+                    .findDetailedById(barbershopId, entity.getId())
+                    .map(appointmentPersistenceMapper::toDomain)
+                    .orElseThrow(() -> new IllegalStateException("Appointment not found"));
+        }
+
+        validateNotPast(entity.getStartTime(), now);
+        validateStartTime(newStartTime, now);
+
+        validateNoDuplicateSlot(entity.getBarberId(), newStartTime, entity.getCustomerEmail());
+
+        Service service = serviceService.findById(slug, entity.getServiceId());
+
+        Instant newEnd = newStartTime.plus(Duration.ofMinutes(service.getDurationMinutes()));
+
+        validateWorkingHours(newStartTime, newEnd);
+        validateNoOverlap(entity.getBarberId(), newStartTime, newEnd);
+
+        // =========================
+        // UPDATE
+        // =========================
+
+        entity.setStartTime(newStartTime);
+        entity.setEndTime(newEnd);
+
+        entity.setCancelTokenExpiresAt(
+                newStartTime.minusSeconds(3600)
+        );
+
+        // 🔥 🔥 🔥 CLAVE PARA CALENDARIO
+        entity.setCalendarVersion(entity.getCalendarVersion() + 1);
+
+        // 🔥 FORZAR SYNC (evita valores antiguos)
+        appointmentRepository.flush();
+
+        // 🔥 DEVOLVER DATOS ACTUALIZADOS (IMPORTANTE)
+        return appointmentRepository
+                .findDetailedById(barbershopId, entity.getId())
+                .map(appointmentPersistenceMapper::toDomain)
+                .orElseThrow(() -> new IllegalStateException("Updated appointment not found"));
+    }
+
     // RESEND CANCEL LINK
     @Transactional
     public void resendCancelLink(String slug, Long id, String email, String ip) {
         redisRateLimiter.checkResendLimit(ip, email);
 
         Long barbershopId = getBarbershopIdOrThrow(slug);
+        Instant now = now();
 
         AppointmentEntity entity = appointmentRepository
                 .findByIdAndBarbershopId(barbershopId, id)
@@ -179,18 +240,17 @@ public class AppointmentService {
             throw new InvalidAppointmentException("Appointment already cancelled");
         }
 
-        validateNotPast(entity.getStartTime(), now());
-
+        validateNotPast(entity.getStartTime(), now);
         validateResendRateLimit(entity); // (este puedes mantenerlo 👍)
 
         String newToken = UUID.randomUUID().toString();
 
         entity.setCancelToken(newToken);
         entity.setCancelTokenExpiresAt(
-                entity.getStartTime().minusHours(1).toInstant(ZoneOffset.UTC)
+                entity.getStartTime().minusSeconds(3600)
         );
 
-        entity.setLastResendAt(Instant.now());
+        entity.setLastResendAt(now);
 
         appointmentCreatedEvent.fire(new AppointmentCreatedEvent(
                 entity.getCustomerEmail(),
@@ -211,14 +271,14 @@ public class AppointmentService {
         validateNotPast(entity.getStartTime(), now());
 
         // 🔥 SOFT DELETE
-        entity.setCancelledAt(Instant.now());
+        entity.setCancelledAt(now());
         entity.setCancelToken(null);
         entity.setCancelTokenExpiresAt(null);
     }
 
     // VALIDATIONS
 
-    private void validateStartTime(LocalDateTime start, LocalDateTime now) {
+    private void validateStartTime(Instant start, Instant now) {
         if (!start.isAfter(now)) {
             throw new InvalidAppointmentException("Start time must be in the future");
         }
@@ -230,32 +290,33 @@ public class AppointmentService {
         }
     }
 
-    private void validateMaxActiveAppointments(Long barbershopId, String email, LocalDateTime now) {
+    private void validateMaxActiveAppointments(Long barbershopId, String email, Instant now) {
 
         long active = appointmentRepository.countFutureByEmail(barbershopId, email, now);
-
-        System.out.println("ACTIVE APPOINTMENTS: " + active);
 
         if (active >= MAX_ACTIVE_APPOINTMENTS) {
             throw new InvalidAppointmentException("You already have too many active bookings");
         }
     }
 
-    private void validateNoDuplicateSlot(Long barberId, LocalDateTime startTime, String email) {
+    private void validateNoDuplicateSlot(Long barberId, Instant startTime, String email) {
 
         if (appointmentRepository.existsSameSlot(barberId, startTime, email)) {
             throw new InvalidAppointmentException("You already booked this time slot");
         }
     }
 
-    private void validateWorkingHours(LocalDateTime start, LocalDateTime end) {
-        if (start.toLocalTime().isBefore(OPENING_TIME)
-                || end.toLocalTime().isAfter(CLOSING_TIME)) {
+    private void validateWorkingHours(Instant start, Instant end) {
+        LocalTime startTime = start.atZone(ZONE).toLocalTime();
+        LocalTime endTime = end.atZone(ZONE).toLocalTime();
+
+        if (startTime.isBefore(OPENING_TIME)
+                || endTime.isAfter(CLOSING_TIME)) {
             throw new InvalidAppointmentException("Appointment outside working hours");
         }
     }
 
-    private void validateNoOverlap(Long barberId, LocalDateTime start, LocalDateTime end) {
+    private void validateNoOverlap(Long barberId, Instant start, Instant end) {
         if (appointmentRepository.existsOverlapping(barberId, start, end)) {
             throw new AppointmentConflictException("Time slot already booked");
         }
@@ -267,7 +328,7 @@ public class AppointmentService {
         }
     }
 
-    private void validateNotPast(LocalDateTime startTime, LocalDateTime now) {
+    private void validateNotPast(Instant startTime, Instant now) {
         if (startTime.isBefore(now)) {
             throw new InvalidAppointmentException("Cannot cancel past appointments");
         }
@@ -275,8 +336,8 @@ public class AppointmentService {
 
     // HELPERS
 
-    private LocalDateTime now() {
-        return LocalDateTime.now(ZoneOffset.UTC);
+    private Instant now() {
+        return Instant.now();
     }
 
     private Long getBarbershopIdOrThrow(String slug) {
@@ -289,7 +350,7 @@ public class AppointmentService {
     private void validateResendRateLimit(AppointmentEntity entity) {
 
         if (entity.getLastResendAt() != null &&
-                entity.getLastResendAt().isAfter(Instant.now().minusSeconds(60))) {
+                entity.getLastResendAt().isAfter(now().minusSeconds(60))) {
 
             throw new InvalidAppointmentException(
                     "Please wait before requesting another email"

@@ -4,7 +4,6 @@ import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,7 +45,8 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.startTime,
             a.endTime,
             a.cancelledAt,
-            a.source
+            a.source,
+            a.calendarVersion
         )
         FROM AppointmentEntity a
         JOIN BarberEntity b ON b.id = a.barberId
@@ -76,7 +76,8 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.startTime,
             a.endTime,
             a.cancelledAt,
-            a.source
+            a.source,
+            a.calendarVersion
         )
         FROM AppointmentEntity a
         JOIN BarberEntity b ON b.id = a.barberId
@@ -93,7 +94,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
 
     // ANTIFRAUDE
 
-    public long countFutureByEmail(Long barbershopId, String email, LocalDateTime now) {
+    public long countFutureByEmail(Long barbershopId, String email, Instant now) {
         return count("""
             barbershopId = ?1
             and customerEmail = ?2
@@ -102,7 +103,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
         """, barbershopId, email, now);
     }
 
-    public boolean existsSameSlot(Long barberId, LocalDateTime startTime, String email) {
+    public boolean existsSameSlot(Long barberId, Instant startTime, String email) {
         return count("""
             barberId = ?1
             and startTime = ?2
@@ -113,7 +114,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
 
     // AVAILABILITY
 
-    public boolean existsOverlapping(Long barberId, LocalDateTime start, LocalDateTime end) {
+    public boolean existsOverlapping(Long barberId, Instant start, Instant end) {
         return count("""
             barberId = ?1
             and cancelledAt is null
@@ -122,7 +123,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
         """, barberId, end, start) > 0;
     }
 
-    public boolean existsOverlappingAnyBarber(Long barbershopId, LocalDateTime start, LocalDateTime end) {
+    public boolean existsOverlappingAnyBarber(Long barbershopId, Instant start, Instant end) {
         return count("""
             barbershopId = ?1
             and cancelledAt is null

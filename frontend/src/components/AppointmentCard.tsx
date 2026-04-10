@@ -1,45 +1,78 @@
-type Props = {
+"use client";
+
+import { formatDate, formatTime } from "@/services/dateService";
+
+type CardProps = {
   appointment: any;
   showCancel?: boolean;
   onResend?: (id: number) => void;
+  onClick?: () => void;
 };
 
 export default function AppointmentCard({
   appointment,
   showCancel,
   onResend,
-}: Props) {
-  const date = new Date(appointment.startTime);
+  onClick,
+}: CardProps) {
+  const isCancelled = !!appointment.cancelledAt;
 
   return (
     <div
-      style={{
-        border: "1px solid #ddd",
-        padding: "12px",
-        borderRadius: "8px",
-        marginBottom: "10px",
-        opacity: appointment.cancelledAt ? 0.5 : 1,
-      }}
+      onClick={onClick}
+      className={`
+        p-4 rounded-2xl border transition space-y-2
+        ${
+          isCancelled
+            ? "bg-gray-900 border-red-800 opacity-60 cursor-not-allowed"
+            : "bg-gray-900 border-gray-700 hover:scale-[1.02] cursor-pointer"
+        }
+      `}
     >
-      <p>
-        <strong>Fecha:</strong> {date.toLocaleString()}
+      {/* 🔥 HEADER */}
+      <div className="flex justify-between items-center">
+        <p className="font-semibold text-white">
+          {formatTime(appointment.startTime)}
+        </p>
+
+        <span
+          className={`text-xs font-medium px-2 py-1 rounded-full ${
+            isCancelled
+              ? "bg-red-900 text-red-400"
+              : "bg-green-900 text-green-400"
+          }`}
+        >
+          {isCancelled ? "Cancelada" : "Activa"}
+        </span>
+      </div>
+
+      {/* 📅 FECHA */}
+      <p className="text-sm text-gray-400">
+        {formatDate(appointment.startTime)}
       </p>
 
-      <p>
-        <strong>Servicio:</strong> {appointment.serviceName}
-      </p>
+      {/* 💈 INFO */}
+      <div className="text-sm space-y-1">
+        <p>
+          <span className="text-gray-400">Servicio:</span>{" "}
+          {appointment.serviceName}
+        </p>
 
-      <p>
-        <strong>Barbero:</strong> {appointment.barberName}
-      </p>
+        <p>
+          <span className="text-gray-400">Barbero:</span>{" "}
+          {appointment.barberName}
+        </p>
+      </div>
 
-      <p>
-        <strong>Estado:</strong>{" "}
-        {appointment.cancelledAt ? "Cancelada ❌" : "Activa"}
-      </p>
-
-      {showCancel && (
-        <button onClick={() => onResend?.(appointment.id)}>
+      {/* 🔥 ACTION */}
+      {showCancel && !isCancelled && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onResend?.(appointment.id);
+          }}
+          className="mt-2 text-sm text-blue-400 hover:text-blue-300 underline"
+        >
           Reenviar enlace de cancelación
         </button>
       )}
