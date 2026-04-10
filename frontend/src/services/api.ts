@@ -1,3 +1,5 @@
+import { formatLocalDate } from "./dateService";
+
 const API_URL = "http://192.168.18.212:8080";
 
 export type ApiResponse<T> = {
@@ -77,15 +79,29 @@ export function getBarbers(slug: string) {
 // Availability
 // =========================
 
-export function getAvailability(
+export async function getAvailability(
   slug: string,
   barberId: number,
   serviceId: number,
-  date: string,
+  date: string | Date,
 ) {
-  return apiFetch<{ slots: string[] }>(
-    `${API_URL}/barbershops/${slug}/availability?barberId=${barberId}&serviceId=${serviceId}&date=${date}`,
-  );
+  const safeDate = typeof date === "string" ? date : formatLocalDate(date);
+
+  const url = `${API_URL}/barbershops/${slug}/availability?barberId=${barberId}&serviceId=${serviceId}&date=${safeDate}`;
+
+  try {
+    const res = await fetch(url);
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { error: true, message: data.message };
+    }
+
+    return { data };
+  } catch {
+    return { error: true, message: "Network error" };
+  }
 }
 
 // =========================
@@ -134,4 +150,33 @@ export function resendCancelLink(slug: string, id: number, email: string) {
     `${API_URL}/barbershops/${slug}/appointments/${id}/resend-cancel-link?email=${email}`,
     { method: "POST" },
   );
+}
+
+export async function rescheduleAppointment(
+  slug: string,
+  id: number,
+  startTime: string,
+) {
+  try {
+    const res = await fetch(
+      `${API_URL}/barbershops/${slug}/appointments/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ startTime }),
+      },
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { error: true, message: data.message };
+    }
+
+    return { data };
+  } catch {
+    return { error: true, message: "Network error" };
+  }
 }
