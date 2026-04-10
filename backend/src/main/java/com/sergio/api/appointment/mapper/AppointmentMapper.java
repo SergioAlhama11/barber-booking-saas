@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 @Mapper(componentModel = "cdi")
@@ -21,15 +22,5 @@ public interface AppointmentMapper {
     @Mapping(target = "cancelledAt", ignore = true)
     Appointment toDomain(CreateAppointmentRequest request);
 
-    @Mapping(target = "barberName", source = "barberName")
-    @Mapping(target = "serviceName", source = "serviceName")
-    @Mapping(target = "cancelledAt", source = "cancelledAt")
     AppointmentResponse toDto(Appointment appointment);
-
-    default LocalDateTime map(Instant value) {
-        return value != null
-                ? LocalDateTime.ofInstant(value, ZoneOffset.UTC)
-                : null;
-    }
-
 }

@@ -29,10 +29,10 @@ public class AppointmentEntity {
     private String customerEmail;
 
     @Column(name = "start_time", nullable = false)
-    private LocalDateTime startTime;
+    private Instant startTime;
 
     @Column(name = "end_time", nullable = false)
-    private LocalDateTime endTime;
+    private Instant endTime;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -53,6 +53,9 @@ public class AppointmentEntity {
 
     @Column(name = "source")
     private String source;
+
+    @Column(name = "calendar_version", nullable = false)
+    private int calendarVersion = 0;
 
     public Long getId() {
         return id;
@@ -98,19 +101,19 @@ public class AppointmentEntity {
         this.customerEmail = customerEmail;
     }
 
-    public LocalDateTime getStartTime() {
+    public Instant getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(LocalDateTime startTime) {
+    public void setStartTime(Instant startTime) {
         this.startTime = startTime;
     }
 
-    public LocalDateTime getEndTime() {
+    public Instant getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(LocalDateTime endTime) {
+    public void setEndTime(Instant endTime) {
         this.endTime = endTime;
     }
 
@@ -156,6 +159,14 @@ public class AppointmentEntity {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public int getCalendarVersion() {
+        return calendarVersion;
+    }
+
+    public void setCalendarVersion(int calendarVersion) {
+        this.calendarVersion = calendarVersion;
     }
 
     public boolean isCancelled() {

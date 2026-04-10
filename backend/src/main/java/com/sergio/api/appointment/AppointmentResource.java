@@ -2,6 +2,7 @@ package com.sergio.api.appointment;
 
 import com.sergio.api.appointment.dto.AppointmentResponse;
 import com.sergio.api.appointment.dto.CreateAppointmentRequest;
+import com.sergio.api.appointment.dto.RescheduleAppointmentRequest;
 import com.sergio.api.appointment.mapper.AppointmentMapper;
 import com.sergio.application.appointment.AppointmentService;
 import com.sergio.domain.appointment.Appointment;
@@ -100,6 +101,18 @@ public class AppointmentResource {
         appointmentService.resendCancelLink(slug, id, email, ip);
 
         return Response.noContent().build();
+    }
+
+    @PUT
+    @Path("/{id}")
+    public AppointmentResponse reschedule(
+            @PathParam("slug") String slug,
+            @PathParam("id") Long id,
+            @Valid RescheduleAppointmentRequest request
+    ) {
+        Appointment updated = appointmentService.reschedule(slug, id, request.startTime());
+
+        return mapper.toDto(updated);
     }
 
     @DELETE
