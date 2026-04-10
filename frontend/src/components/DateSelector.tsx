@@ -2,13 +2,15 @@
 
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+import { es } from "date-fns/locale";
+import { formatLocalDate } from "@/services/dateService";
 
 type Props = {
   date: string;
   minDate: string;
   onChange: (date: string) => void;
-  onCheck: () => void;
-  disabled?: boolean; // 🔥 AÑADIDO
+  onCheck: (date: string) => void;
+  disabled?: boolean;
 };
 
 export default function DateSelector({
@@ -19,35 +21,31 @@ export default function DateSelector({
   disabled = false,
 }: Props) {
   return (
-    <div className="mt-6 space-y-4">
+    <div className="mt-6 space-y-4 w-full">
       <h2 className="text-lg font-semibold">Selecciona la fecha</h2>
 
-      <div className="bg-gray-900 p-4 rounded-xl">
+      <div className="bg-gray-900 text-white rounded-2xl p-4 shadow-lg w-full">
         <DayPicker
           mode="single"
+          locale={es}
+          weekStartsOn={1}
           selected={new Date(date)}
           onSelect={(d) => {
             if (!d) return;
-            onChange(d.toISOString().split("T")[0]);
+
+            const formatted = formatLocalDate(d);
+
+            onChange(formatted);
+            onCheck(formatted);
           }}
           disabled={{ before: new Date(minDate) }}
         />
       </div>
-
-      <button
-        onClick={onCheck}
-        disabled={disabled}
-        className={`
-          w-full py-3 rounded-xl font-medium transition
-          ${
-            disabled
-              ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
-          }
-        `}
-      >
-        Ver disponibilidad
-      </button>
+      <p className="text-xs text-gray-400 text-center">
+        {disabled
+          ? "Selecciona un barbero para ver disponibilidad"
+          : "Mostrando disponibilidad automáticamente"}
+      </p>
     </div>
   );
 }

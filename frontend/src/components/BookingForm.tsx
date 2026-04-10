@@ -1,5 +1,7 @@
 "use client";
 
+import { formatTimeSlot } from "@/services/dateService";
+
 export default function BookingForm({
   selectedSlot,
   customerName,
@@ -22,7 +24,7 @@ export default function BookingForm({
   return (
     <div className="mt-6 space-y-4">
       <p className="font-semibold">
-        Hora seleccionada: {selectedSlot.slice(0, 5)}
+        Hora seleccionada: {formatTimeSlot(selectedSlot)}
       </p>
 
       <h2 className="text-xl font-semibold">Introduzca sus datos:</h2>

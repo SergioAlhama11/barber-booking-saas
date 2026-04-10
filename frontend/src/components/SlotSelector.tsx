@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+
+import { formatTimeSlot } from "@/services/dateService";
 
 type Props = {
   slots: string[];
@@ -10,78 +13,164 @@ type Props = {
 
 export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
   const [showAll, setShowAll] = useState(false);
+  const selectedRef = useRef<HTMLButtonElement | null>(null);
 
   const sortedSlots = useMemo(() => [...slots].sort(), [slots]);
-
   const recommendedSlot = sortedSlots[0];
-  const visibleSlots = showAll ? sortedSlots : sortedSlots.slice(0, 6);
 
-  const format = (slot: string) => slot.slice(0, 5);
+  // =========================
+  // AUTO SELECT (SMART UX)
+  // =========================
+  useEffect(() => {
+    if (!selectedSlot && recommendedSlot) {
+      onSelect(recommendedSlot);
+    }
+  }, [recommendedSlot]);
 
-  // EMPTY STATE
-  if (slots.length === 0) {
+  // =========================
+  // HAPTIC FEEDBACK
+  // =========================
+  function triggerHaptic() {
+    // Android real vibration
+    if (typeof window !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(15);
+    }
+
+    // 🔥 iOS fallback → nada físico, pero reforzamos visual (ya lo hacemos con animación)
+  }
+
+  function handleSelect(slot: string) {
+    triggerHaptic();
+    onSelect(slot);
+  }
+
+  // =========================
+  // SCROLL UX
+  // =========================
+  useEffect(() => {
+    if (selectedRef.current) {
+      selectedRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [selectedSlot]);
+
+  // =========================
+  // GROUPING (PRO)
+  // =========================
+  function getHour(slot: string) {
+    return parseInt(slot.split(":")[0], 10);
+  }
+
+  const morningSlots = sortedSlots.filter((s) => getHour(s) < 15);
+  const afternoonSlots = sortedSlots.filter((s) => getHour(s) >= 15);
+
+  function renderGroup(title: string, group: string[]) {
+    if (group.length === 0) return null;
+
+    const visible = showAll ? group : group.slice(0, 6);
+
     return (
-      <div className="mt-8 text-center space-y-3">
-        <p className="text-red-500 font-medium">
-          ❌ No hay citas disponibles para esta fecha
-        </p>
-        <p className="text-gray-400 text-sm">
-          Prueba con otro día o cambia de servicio/barbero
-        </p>
+      <div className="space-y-3">
+        <p className="text-sm text-gray-400">{title}</p>
+
+        <div className="grid grid-cols-3 gap-3">
+          {visible.map((slot) => {
+            const isSelected = selectedSlot === slot;
+
+            return (
+              <motion.button
+                key={slot}
+                ref={isSelected ? selectedRef : undefined}
+                onClick={() => handleSelect(slot)}
+                whileTap={{ scale: 0.92 }}
+                animate={{
+                  scale: isSelected ? 1.05 : 1,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                }}
+                className={`
+                  py-3 rounded-xl border font-medium transition
+
+                  ${
+                    isSelected
+                      ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400"
+                      : "bg-gray-900 border-gray-700 text-gray-200 hover:bg-gray-800"
+                  }
+                `}
+              >
+                {formatTimeSlot(slot)}
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
     );
   }
 
+  // =========================
+  // EMPTY STATE
+  // =========================
+  if (slots.length === 0) return null;
+
   return (
-    <div className="mt-8">
-      <h2 className="text-lg font-semibold mb-4 text-white">
-        Horarios disponibles
-      </h2>
+    <div className="mt-6 space-y-6">
+      <h2 className="text-lg font-semibold">Horarios disponibles</h2>
 
-      {/* RECOMENDADO */}
+      {/* =========================
+          RECOMENDADO
+      ========================= */}
       {recommendedSlot && (
-        <div className="mb-5 p-4 rounded-2xl bg-green-900/30 border border-green-700">
-          <p className="text-xs text-green-400 uppercase">Recomendado</p>
+        <div className="p-4 rounded-2xl bg-green-900/20 border border-green-700 relative">
+          <p className="text-xs text-green-400 uppercase mb-2">Recomendado</p>
 
-          <button
-            onClick={() => onSelect(recommendedSlot)}
-            className={`mt-2 w-full py-3 rounded-xl font-semibold transition
+          <motion.button
+            onClick={() => handleSelect(recommendedSlot)}
+            whileTap={{ scale: 0.95 }}
+            animate={{
+              scale: selectedSlot === recommendedSlot ? 1.05 : 1,
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 20,
+            }}
+            className={`
+              w-full py-3 rounded-xl font-semibold transition
+
               ${
                 selectedSlot === recommendedSlot
-                  ? "bg-green-600 text-white"
-                  : "bg-green-500 hover:bg-green-600 text-white"
-              }`}
+                  ? "bg-blue-600 text-white shadow-lg ring-2 ring-blue-400"
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }
+            `}
           >
-            {format(recommendedSlot)}
-          </button>
+            {formatTimeSlot(recommendedSlot)}
+          </motion.button>
+
+          {selectedSlot === recommendedSlot && (
+            <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow">
+              ✓
+            </div>
+          )}
         </div>
       )}
 
-      {/* GRID */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {visibleSlots.map((slot) => {
-          const isSelected = selectedSlot === slot;
+      {/* =========================
+          GROUPS
+      ========================= */}
+      {renderGroup("🌅 Mañana", morningSlots)}
+      {renderGroup("🌇 Tarde", afternoonSlots)}
 
-          return (
-            <button
-              key={slot}
-              onClick={() => onSelect(slot)}
-              className={`py-3 rounded-xl border transition
-                ${
-                  isSelected
-                    ? "bg-blue-600 text-white border-blue-500"
-                    : "bg-gray-900 border-gray-700 text-white hover:bg-gray-800"
-                }`}
-            >
-              {format(slot)}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* VER MÁS */}
+      {/* =========================
+          VER MÁS
+      ========================= */}
       {slots.length > 6 && (
-        <div className="mt-4 text-center">
+        <div className="text-center">
           <button
             onClick={() => setShowAll((p) => !p)}
             className="text-blue-400 text-sm hover:text-blue-300"
