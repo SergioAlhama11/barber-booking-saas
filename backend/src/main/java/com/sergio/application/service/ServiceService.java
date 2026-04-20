@@ -13,6 +13,8 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 
@@ -55,9 +57,25 @@ public class ServiceService {
     public Service create(String slug, Service service) {
         Long barbershopId = getBarbershopIdOrThrow(slug);
 
-        if (service.getDurationMinutes() < 20 || service.getDurationMinutes() > 40) {
+        if (service.getName() == null || service.getName().isBlank()) {
+            throw new InvalidServiceException("Name is required");
+        }
+
+        if (service.getDurationMinutes() == null ||
+                service.getDurationMinutes() < 20 ||
+                service.getDurationMinutes() > 40) {
             throw new InvalidServiceException("Duration must be between 20 and 40 minutes");
         }
+
+        if (service.getPrice() == null) {
+            throw new InvalidServiceException("Price is required");
+        }
+
+        if (service.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidServiceException("Price must be greater than 0");
+        }
+
+        service.setPrice(service.getPrice().setScale(2, RoundingMode.HALF_UP));
 
         if (serviceRepository.existsByNameAndBarbershopId(service.getName(), barbershopId)) {
             throw new DuplicateServiceException("Service already exists");

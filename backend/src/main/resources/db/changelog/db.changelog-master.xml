@@ -19,5 +19,6 @@
     <include file="db/changelog/010-appointments-hardening.xml"/>
     <include file="db/changelog/011-add-source-to-appointments.xml"/>
     <include file="db/changelog/012-add-calendar-version-to-appointments.xml"/>
+    <include file="db/changelog/013-add-price-to-services.xml"/>
 
 </databaseChangeLog>

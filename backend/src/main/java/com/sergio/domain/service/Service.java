@@ -1,17 +1,21 @@
 package com.sergio.domain.service;
 
+import java.math.BigDecimal;
+
 public class Service {
 
     private Long id;
     private Long barbershopId;
     private String name;
     private Integer durationMinutes;
+    private BigDecimal price;
 
-    public Service(Long id, Long barbershopId, String name, Integer durationMinutes) {
+    public Service(Long id, Long barbershopId, String name, Integer durationMinutes, BigDecimal price) {
         this.id = id;
         this.barbershopId = barbershopId;
         this.name = name;
         this.durationMinutes = durationMinutes;
+        this.price = price;
     }
 
     public Service() {}
@@ -46,5 +50,13 @@ public class Service {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 }

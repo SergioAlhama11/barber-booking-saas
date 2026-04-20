@@ -42,13 +42,18 @@ export function useBooking(slug: string) {
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-
     if (!saved) return;
 
     try {
       const parsed = JSON.parse(saved);
-      setSelectedService(parsed.service ?? null);
-      setSelectedBarber(parsed.barber ?? null);
+
+      if (parsed.serviceId) {
+        setSelectedService({ id: parsed.serviceId } as Service);
+      }
+
+      if (parsed.barberId) {
+        setSelectedBarber({ id: parsed.barberId } as Barber);
+      }
     } catch {
       console.warn("Error parsing booking state");
     }
@@ -58,8 +63,8 @@ export function useBooking(slug: string) {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        service: selectedService,
-        barber: selectedBarber,
+        serviceId: selectedService?.id ?? null,
+        barberId: selectedBarber?.id ?? null,
       }),
     );
   }, [selectedService, selectedBarber]);
@@ -75,6 +80,7 @@ export function useBooking(slug: string) {
   // =========================
 
   useEffect(() => {
+    if (!selectedService?.id || !selectedBarber?.id) return;
     if (selectedBarber && selectedService) {
       loadAvailability(date);
     }
