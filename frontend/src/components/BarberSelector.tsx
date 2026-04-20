@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Barber } from "@/types";
 import { getAvailability } from "@/services/api";
-import { getTodayLocal } from "@/services/dateService";
 
 type Props = {
   barbers: Barber[];
@@ -28,6 +27,7 @@ export default function BarberSelector({
   useEffect(() => {
     if (!selectedServiceId || barbers.length === 0) return;
 
+    const serviceId = selectedServiceId;
     let cancelled = false;
 
     async function load() {
@@ -36,16 +36,9 @@ export default function BarberSelector({
       const results: Record<number, number> = {};
 
       try {
-        if (!selectedServiceId) return;
-
         await Promise.all(
           barbers.map(async (barber) => {
-            const res = await getAvailability(
-              slug,
-              barber.id,
-              selectedServiceId,
-              date,
-            );
+            const res = await getAvailability(slug, barber.id, serviceId, date);
 
             results[barber.id] = res.data?.slots?.length ?? 0;
           }),
@@ -68,11 +61,15 @@ export default function BarberSelector({
     };
   }, [barbers, selectedServiceId, slug, date]);
 
+  // =========================
+  // UX LABELS (CLAVE)
+  // =========================
+
   function getLabel(count?: number) {
     if (count === undefined) return "Consultando...";
-    if (count === 0) return "Sin huecos";
-    if (count <= 3) return "Pocas citas";
-    return "Disponible";
+    if (count === 0) return "Hoy completo"; // 🔥 cambio clave
+    if (count <= 3) return "Pocas citas hoy";
+    return "Disponible hoy";
   }
 
   function getColor(count?: number) {
@@ -80,6 +77,13 @@ export default function BarberSelector({
     if (count === 0) return "text-red-400";
     if (count <= 3) return "text-yellow-400";
     return "text-green-400";
+  }
+
+  function getDotColor(count?: number) {
+    if (count === undefined) return "bg-gray-500";
+    if (count === 0) return "bg-red-500";
+    if (count <= 3) return "bg-yellow-500";
+    return "bg-green-500";
   }
 
   return (
@@ -104,16 +108,26 @@ export default function BarberSelector({
                 }
               `}
             >
+              {/* Avatar */}
               <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold">
                 {barber.name.charAt(0)}
               </div>
 
+              {/* Info */}
               <div className="text-left flex-1">
                 <p className="font-medium">{barber.name}</p>
 
-                <p className={`text-xs ${getColor(count)}`}>
-                  {loading ? "Consultando..." : getLabel(count)}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  {/* Dot estado */}
+                  <div
+                    className={`w-2 h-2 rounded-full ${getDotColor(count)}`}
+                  />
+
+                  {/* Texto */}
+                  <p className={`text-xs ${getColor(count)}`}>
+                    {loading ? "Consultando..." : getLabel(count)}
+                  </p>
+                </div>
               </div>
             </button>
           );

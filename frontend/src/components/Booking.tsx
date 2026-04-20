@@ -183,33 +183,21 @@ export default function Booking({
               onSelect={booking.selectSlot}
             />
 
-            {/* 👉 SUGERENCIA AUTOMÁTICA */}
-            {booking.slots.length === 0 && (
+            {/* 👉 SUGERENCIA AUTOMÁTICA (SIN REDUNDANCIA) */}
+            {booking.slots.length === 0 && booking.suggestedDate && (
               <div className="mt-4 text-center space-y-2">
-                <p className="text-red-400 font-medium">
-                  ❌ No quedan huecos este día
-                </p>
+                <p className="text-gray-400 text-sm">No hay citas hoy</p>
 
-                {booking.suggestedDate && (
-                  <>
-                    {/* 👇 AQUÍ VA */}
-                    <p className="text-gray-400 text-xs">
-                      Próximo hueco disponible
-                    </p>
-
-                    <button
-                      onClick={async () => {
-                        const next = booking.suggestedDate!;
-                        booking.changeDate(next);
-                        await booking.loadAvailability(next);
-                      }}
-                      className="text-yellow-300 underline text-sm hover:text-yellow-200 transition"
-                    >
-                      👉 Ver disponibilidad{" "}
-                      {formatSmartDate(booking.suggestedDate)}
-                    </button>
-                  </>
-                )}
+                <button
+                  onClick={async () => {
+                    const next = booking.suggestedDate!;
+                    booking.changeDate(next);
+                    await booking.loadAvailability(next);
+                  }}
+                  className="text-yellow-300 underline text-sm hover:text-yellow-200 transition"
+                >
+                  👉 Ver disponibilidad {formatSmartDate(booking.suggestedDate)}
+                </button>
               </div>
             )}
           </motion.div>
