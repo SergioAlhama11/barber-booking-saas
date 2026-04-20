@@ -4,8 +4,7 @@ import AppHeader from "@/components/AppHeader";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { formatDate, formatTime } from "@/services/dateService";
-
-const API_URL = "http://192.168.18.212:8080";
+import { getAppointment, type Appointment } from "@/services/api";
 
 export default function ConfirmationPage() {
   const { id, slug } = useParams() as {
@@ -15,7 +14,7 @@ export default function ConfirmationPage() {
 
   const router = useRouter();
 
-  const [appointment, setAppointment] = useState<any | null>(null);
+  const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,24 +24,16 @@ export default function ConfirmationPage() {
 
   useEffect(() => {
     async function fetchAppointment() {
-      try {
-        const res = await fetch(
-          `${API_URL}/barbershops/${slug}/appointments/${id}`,
-        );
+      const res = await getAppointment(slug, Number(id));
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          setError(data.message || "Error loading appointment");
-          return;
-        }
-
-        setAppointment(data);
-      } catch {
-        setError("Network error");
-      } finally {
+      if (res.error || !res.data) {
+        setError(res.message ?? "Error cargando la reserva");
         setLoading(false);
+        return;
       }
+
+      setAppointment(res.data);
+      setLoading(false);
     }
 
     if (id && slug) fetchAppointment();
@@ -142,7 +133,7 @@ export default function ConfirmationPage() {
           <p className="text-sm text-gray-400">Añádelo a tu calendario 📅</p>
 
           <a
-            href={`${API_URL}/barbershops/${slug}/appointments/${id}/calendar`}
+            href={`/api/barbershops/${slug}/appointments/${id}/calendar`}
             className="block w-full text-center bg-blue-600 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95"
           >
             📅 Añadir al calendario
@@ -157,14 +148,14 @@ export default function ConfirmationPage() {
         <div className="flex flex-col gap-3">
           <button
             onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
-            className="w-full bg-blue-600 py-3 rounded-xl hover:bg-blue-700 transition active:scale-95"
+            className="w-full bg-blue-600 py-3 rounded-xl hover:bg-blue-700 transition"
           >
             Ver mis citas
           </button>
 
           <button
             onClick={() => router.push(`/barbershops/${slug}`)}
-            className="w-full bg-gray-800 py-3 rounded-xl hover:bg-gray-700 transition active:scale-95"
+            className="w-full bg-gray-800 py-3 rounded-xl hover:bg-gray-700 transition"
           >
             Reservar otra cita
           </button>

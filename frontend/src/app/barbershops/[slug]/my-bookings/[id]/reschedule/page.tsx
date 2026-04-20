@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DateSelector from "@/components/DateSelector";
 import SlotSelector from "@/components/SlotSelector";
-import { getAvailability, rescheduleAppointment } from "@/services/api";
+import {
+  getAvailability,
+  rescheduleAppointment,
+  getAppointment,
+  type Appointment,
+} from "@/services/api";
 import {
   buildUTCDateTime,
   formatDate,
@@ -13,15 +18,13 @@ import {
 } from "@/services/dateService";
 import AppContainer from "@/components/AppContainer";
 
-const API_URL = "http://192.168.18.212:8080";
-
 export default function ReschedulePage() {
   const router = useRouter();
   const { id, slug } = useParams() as { id: string; slug: string };
 
   const today = getTodayLocal();
 
-  const [appointment, setAppointment] = useState<any>(null);
+  const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [date, setDate] = useState(today);
   const [slots, setSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -31,18 +34,26 @@ export default function ReschedulePage() {
   const [error, setError] = useState<string | null>(null);
 
   // =========================
-  // FETCH
+  // FETCH APPOINTMENT
   // =========================
 
   useEffect(() => {
-    fetch(`${API_URL}/barbershops/${slug}/appointments/${id}`)
-      .then((r) => r.json())
-      .then(setAppointment)
-      .catch(() => setError("Error cargando la cita"));
+    async function load() {
+      const res = await getAppointment(slug, Number(id));
+
+      if (res.error || !res.data) {
+        setError(res.message ?? "Error cargando la cita");
+        return;
+      }
+
+      setAppointment(res.data);
+    }
+
+    load();
   }, [id, slug]);
 
   // =========================
-  // AUTO LOAD
+  // AUTO LOAD SLOTS
   // =========================
 
   useEffect(() => {
@@ -71,16 +82,16 @@ export default function ReschedulePage() {
       );
 
       if (res.error || !res.data) {
-        setError(res.message ?? "Error loading availability");
+        setError(res.message ?? "Error cargando disponibilidad");
         return;
       }
 
       const slots = res.data.slots ?? [];
 
       setSlots(slots);
-      setSelectedSlot(slots[0] ?? null);
+      setSelectedSlot((prev) => prev ?? slots[0] ?? null);
     } catch {
-      setError("Error loading availability");
+      setError("Error cargando disponibilidad");
     } finally {
       setLoadingSlots(false);
     }
@@ -105,7 +116,7 @@ export default function ReschedulePage() {
       const res = await rescheduleAppointment(slug, Number(id), startTime);
 
       if (res.error) {
-        setError(res.message);
+        setError(res.message ?? "Error actualizando cita");
         return;
       }
 
@@ -158,10 +169,8 @@ export default function ReschedulePage() {
 
   return (
     <AppContainer>
-      {/* HEADER */}
       <h1 className="text-xl font-bold text-center">🔄 Modificar cita</h1>
 
-      {/* RESUMEN */}
       <div className="text-center text-gray-400 text-sm">
         <p>
           {appointment.serviceName} — {appointment.barberName}
@@ -173,7 +182,6 @@ export default function ReschedulePage() {
         </p>
       </div>
 
-      {/* DATE */}
       <DateSelector
         date={date}
         minDate={today}
@@ -181,19 +189,12 @@ export default function ReschedulePage() {
         onCheck={loadSlots}
       />
 
-      {/* UX INFO */}
-      <p className="text-xs text-gray-400 text-center">
-        Mostrando disponibilidad automáticamente
-      </p>
-
-      {/* LOADING */}
       {loadingSlots && (
         <p className="text-center text-gray-400 text-sm">
           Cargando horarios...
         </p>
       )}
 
-      {/* SLOTS */}
       {!loadingSlots && slots.length > 0 && (
         <SlotSelector
           slots={slots}
@@ -202,29 +203,22 @@ export default function ReschedulePage() {
         />
       )}
 
-      {/* EMPTY */}
       {!loadingSlots && slots.length === 0 && (
         <p className="text-center text-red-400 text-sm">
           ❌ No hay disponibilidad para este día
         </p>
       )}
 
-      {/* ERROR */}
       {error && <p className="text-red-500 text-center text-sm">{error}</p>}
 
-      {/* CTA */}
       <button
         onClick={handleSubmit}
         disabled={loading || !selectedSlot}
-        className={`
-          w-full py-3 rounded-xl font-medium transition
-
-          ${
-            loading || !selectedSlot
-              ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
-          }
-        `}
+        className={`w-full py-3 rounded-xl font-medium transition ${
+          loading || !selectedSlot
+            ? "bg-gray-700 text-gray-400"
+            : "bg-blue-600 hover:bg-blue-700 text-white"
+        }`}
       >
         {loading ? "Actualizando..." : "Actualizar cita"}
       </button>

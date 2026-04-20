@@ -1,6 +1,18 @@
 import { formatLocalDate } from "./dateService";
+import type { Barber, Service } from "@/types";
 
-const API_URL = "http://192.168.18.212:8080";
+// =========================
+// CONFIG
+// =========================
+
+const API_URL =
+  typeof window === "undefined"
+    ? process.env.API_URL
+    : process.env.NEXT_PUBLIC_API_URL || "/api";
+
+// =========================
+// TYPES
+// =========================
 
 export type ApiResponse<T> = {
   error: boolean;
@@ -8,23 +20,40 @@ export type ApiResponse<T> = {
   data?: T;
 };
 
+export type Appointment = {
+  id: number;
+  serviceName: string;
+  barberName: string;
+  barberId: number;
+  serviceId: number;
+  customerEmail: string;
+  startTime: string;
+  cancelledAt?: string | null;
+};
+
+export type Availability = {
+  slots: string[];
+};
+
+// =========================
+// CORE FETCH
+// =========================
+
+const defaultHeaders = {
+  "Content-Type": "application/json",
+};
+
 async function apiFetch<T>(
   url: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
-  const isDev = process.env.NODE_ENV === "development";
-
   try {
-    const res = await fetch(url, {
+    const res = await fetch(`${API_URL}${url}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
-        ...(isDev && {
-          "X-Forwarded-For": "127.0.0.1",
-        }),
+        ...defaultHeaders,
         ...(options?.headers || {}),
       },
-      // 🔥 IMPORTANTE (Next SSR cache)
       cache: "no-store",
     });
 
@@ -32,16 +61,12 @@ async function apiFetch<T>(
 
     try {
       data = await res.json();
-    } catch {
-      console.warn("Response is not JSON");
-    }
+    } catch {}
 
     if (!res.ok) {
-      console.error("API ERROR:", {
-        url,
-        status: res.status,
-        data,
-      });
+      if (process.env.NODE_ENV === "development") {
+        console.error("API ERROR:", `${API_URL}${url}`, res.status, data);
+      }
 
       return {
         error: true,
@@ -54,7 +79,9 @@ async function apiFetch<T>(
       data: data as T,
     };
   } catch (err) {
-    console.error("NETWORK ERROR:", err);
+    if (process.env.NODE_ENV === "development") {
+      console.error("NETWORK ERROR:", `${API_URL}${url}`, err);
+    }
 
     return {
       error: true,
@@ -64,22 +91,30 @@ async function apiFetch<T>(
 }
 
 // =========================
-// Barbershop
+// HELPERS
+// =========================
+
+function buildUrl(slug: string, path: string) {
+  return `/barbershops/${slug}${path}`;
+}
+
+// =========================
+// BARBERSHOP
 // =========================
 
 export function getServices(slug: string) {
-  return apiFetch<any[]>(`${API_URL}/barbershops/${slug}/services`);
+  return apiFetch<Service[]>(buildUrl(slug, "/services"));
 }
 
 export function getBarbers(slug: string) {
-  return apiFetch<any[]>(`${API_URL}/barbershops/${slug}/barbers`);
+  return apiFetch<Barber[]>(buildUrl(slug, "/barbers"));
 }
 
 // =========================
-// Availability
+// AVAILABILITY
 // =========================
 
-export async function getAvailability(
+export function getAvailability(
   slug: string,
   barberId: number,
   serviceId: number,
@@ -87,26 +122,24 @@ export async function getAvailability(
 ) {
   const safeDate = typeof date === "string" ? date : formatLocalDate(date);
 
-  const url = `${API_URL}/barbershops/${slug}/availability?barberId=${barberId}&serviceId=${serviceId}&date=${safeDate}`;
+  const params = new URLSearchParams({
+    barberId: String(barberId),
+    serviceId: String(serviceId),
+    date: safeDate,
+  });
 
-  try {
-    const res = await fetch(url);
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { error: true, message: data.message };
-    }
-
-    return { data };
-  } catch {
-    return { error: true, message: "Network error" };
-  }
+  return apiFetch<Availability>(
+    `${buildUrl(slug, "/availability")}?${params.toString()}`,
+  );
 }
 
 // =========================
-// Appointments
+// APPOINTMENTS
 // =========================
+
+export function getAppointment(slug: string, id: number) {
+  return apiFetch<Appointment>(buildUrl(slug, `/appointments/${id}`));
+}
 
 export function createAppointment(
   slug: string,
@@ -119,18 +152,17 @@ export function createAppointment(
     source?: string;
   },
 ) {
-  return apiFetch<{ id: number }>(
-    `${API_URL}/barbershops/${slug}/appointments`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-  );
+  return apiFetch<{ id: number }>(buildUrl(slug, "/appointments"), {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export function cancelAppointment(token: string, slug: string) {
+  const params = new URLSearchParams({ token });
+
   return apiFetch<void>(
-    `${API_URL}/barbershops/${slug}/appointments/cancel?token=${token}`,
+    `${buildUrl(slug, "/appointments/cancel")}?${params.toString()}`,
     { method: "DELETE" },
   );
 }
@@ -140,43 +172,32 @@ export function getAppointmentsByEmail(
   email: string,
   filter: string = "ALL",
 ) {
-  return apiFetch<any[]>(
-    `${API_URL}/barbershops/${slug}/appointments/by-email?email=${email}&filter=${filter}`,
+  const params = new URLSearchParams({
+    email,
+    filter,
+  });
+
+  return apiFetch<Appointment[]>(
+    `${buildUrl(slug, "/appointments/by-email")}?${params.toString()}`,
   );
 }
 
 export function resendCancelLink(slug: string, id: number, email: string) {
+  const params = new URLSearchParams({ email });
+
   return apiFetch<void>(
-    `${API_URL}/barbershops/${slug}/appointments/${id}/resend-cancel-link?email=${email}`,
+    `${buildUrl(slug, `/appointments/${id}/resend-cancel-link`)}?${params.toString()}`,
     { method: "POST" },
   );
 }
 
-export async function rescheduleAppointment(
+export function rescheduleAppointment(
   slug: string,
   id: number,
   startTime: string,
 ) {
-  try {
-    const res = await fetch(
-      `${API_URL}/barbershops/${slug}/appointments/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ startTime }),
-      },
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { error: true, message: data.message };
-    }
-
-    return { data };
-  } catch {
-    return { error: true, message: "Network error" };
-  }
+  return apiFetch<Appointment>(buildUrl(slug, `/appointments/${id}`), {
+    method: "PUT",
+    body: JSON.stringify({ startTime }),
+  });
 }
