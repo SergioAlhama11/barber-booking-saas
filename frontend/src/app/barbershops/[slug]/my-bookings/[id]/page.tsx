@@ -55,16 +55,41 @@ export default function BookingDetailPage() {
         </p>
       </div>
 
-      {!isCancelled && (
+      <div className="flex flex-col gap-3">
+        {!isCancelled ? (
+          <>
+            <button
+              onClick={() =>
+                router.push(`/barbershops/${slug}/my-bookings/${id}/reschedule`)
+              }
+              className="bg-blue-600 hover:bg-blue-700 py-3 rounded-xl transition"
+            >
+              🔄 Modificar cita
+            </button>
+
+            <a
+              href={`/api/barbershops/${slug}/appointments/${id}/calendar`}
+              className="text-center bg-gray-800 hover:bg-gray-700 py-3 rounded-xl transition"
+            >
+              📅 Añadir al calendario
+            </a>
+          </>
+        ) : (
+          <button
+            onClick={() => router.push(`/barbershops/${slug}`)}
+            className="bg-green-600 hover:bg-green-700 py-3 rounded-xl transition"
+          >
+            Reservar nueva cita
+          </button>
+        )}
+
         <button
-          onClick={() =>
-            router.push(`/barbershops/${slug}/my-bookings/${id}/reschedule`)
-          }
-          className="bg-blue-600 py-3 rounded-xl"
+          onClick={() => router.back()}
+          className="bg-gray-200 text-black py-3 rounded-xl"
         >
-          🔄 Modificar cita
+          ← Volver
         </button>
-      )}
+      </div>
     </AppContainer>
   );
 }
