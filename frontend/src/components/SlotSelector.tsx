@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 import { formatTimeSlot } from "@/services/dateService";
@@ -11,9 +11,10 @@ type Props = {
   onSelect: (slot: string) => void;
 };
 
+const MAX_VISIBLE = 6;
+
 export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
   const [showAll, setShowAll] = useState(false);
-  const selectedRef = useRef<HTMLButtonElement | null>(null);
 
   const sortedSlots = useMemo(() => [...slots].sort(), [slots]);
   const recommendedSlot = sortedSlots[0];
@@ -44,19 +45,6 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
     onSelect(slot);
   }
 
-  // =========================
-  // SCROLL UX
-  // =========================
-  useEffect(() => {
-    if (selectedRef.current) {
-      selectedRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
-  }, [selectedSlot]);
-
-  // =========================
   // GROUPING (PRO)
   // =========================
   function getHour(slot: string) {
@@ -65,6 +53,9 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
 
   const morningSlots = sortedSlots.filter((s) => getHour(s) < 15);
   const afternoonSlots = sortedSlots.filter((s) => getHour(s) >= 15);
+
+  const hasExpandable =
+    morningSlots.length > MAX_VISIBLE || afternoonSlots.length > MAX_VISIBLE;
 
   function renderGroup(title: string, group: string[]) {
     if (group.length === 0) return null;
@@ -82,7 +73,6 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
             return (
               <motion.button
                 key={slot}
-                ref={isSelected ? selectedRef : undefined}
                 onClick={() => handleSelect(slot)}
                 whileTap={{ scale: 0.92 }}
                 animate={{
@@ -118,15 +108,14 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
   if (slots.length === 0) return null;
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="mt-6 space-y-5">
       <h2 className="text-lg font-semibold">Horarios disponibles</h2>
 
-      {/* =========================
-          RECOMENDADO
-      ========================= */}
       {recommendedSlot && (
-        <div className="p-4 rounded-2xl bg-green-900/20 border border-green-700 relative">
-          <p className="text-xs text-green-400 uppercase mb-2">Recomendado</p>
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-700/40 relative">
+          <p className="text-xs text-emerald-300 uppercase tracking-[0.18em] mb-2">
+            Recomendado
+          </p>
 
           <motion.button
             onClick={() => handleSelect(recommendedSlot)}
@@ -145,7 +134,7 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
               ${
                 selectedSlot === recommendedSlot
                   ? "bg-blue-600 text-white shadow-lg ring-2 ring-blue-400"
-                  : "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
               }
             `}
           >
@@ -160,20 +149,14 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
         </div>
       )}
 
-      {/* =========================
-          GROUPS
-      ========================= */}
-      {renderGroup("🌅 Mañana", morningSlots)}
-      {renderGroup("🌇 Tarde", afternoonSlots)}
+      {renderGroup("Mañana", morningSlots)}
+      {renderGroup("Tarde", afternoonSlots)}
 
-      {/* =========================
-          VER MÁS
-      ========================= */}
-      {slots.length > 6 && (
+      {hasExpandable && (
         <div className="text-center">
           <button
             onClick={() => setShowAll((p) => !p)}
-            className="text-blue-400 text-sm hover:text-blue-300"
+            className="text-blue-400 text-sm hover:text-blue-300 transition"
           >
             {showAll ? "Ver menos" : "Ver más horarios"}
           </button>

@@ -32,6 +32,7 @@ export default function ReschedulePage() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // =========================
   // FETCH APPOINTMENT
@@ -42,6 +43,7 @@ export default function ReschedulePage() {
       const res = await getAppointment(slug, Number(id));
 
       if (res.error || !res.data) {
+        setLoadFailed(true);
         setError(res.message ?? "Error cargando la cita");
         return;
       }
@@ -132,6 +134,24 @@ export default function ReschedulePage() {
   // LOADING
   // =========================
 
+  if (loadFailed && !appointment) {
+    return (
+      <AppContainer>
+        <div className="space-y-4 text-center">
+          <p className="text-red-400 font-medium">
+            No se puede modificar esta reserva
+          </p>
+          <button
+            onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
+            className="bg-blue-600 hover:bg-blue-700 py-3 rounded-2xl transition font-medium"
+          >
+            Volver a mis citas
+          </button>
+        </div>
+      </AppContainer>
+    );
+  }
+
   if (!appointment) {
     return (
       <AppContainer>
@@ -171,7 +191,7 @@ export default function ReschedulePage() {
     <AppContainer>
       <h1 className="text-xl font-bold text-center">🔄 Modificar cita</h1>
 
-      <div className="text-center text-gray-400 text-sm">
+      <div className="text-center text-gray-400 text-sm space-y-1">
         <p>
           {appointment.serviceName} — {appointment.barberName}
         </p>
@@ -204,9 +224,14 @@ export default function ReschedulePage() {
       )}
 
       {!loadingSlots && slots.length === 0 && (
-        <p className="text-center text-red-400 text-sm">
-          ❌ No hay disponibilidad para este día
-        </p>
+        <div className="rounded-2xl border border-red-900/50 bg-red-500/10 px-4 py-4 text-center space-y-2">
+          <p className="text-sm font-medium text-white">
+            No hay disponibilidad para este día
+          </p>
+          <p className="text-xs text-gray-400">
+            Prueba con otra fecha para encontrar un nuevo hueco.
+          </p>
+        </div>
       )}
 
       {error && <p className="text-red-500 text-center text-sm">{error}</p>}
@@ -214,7 +239,7 @@ export default function ReschedulePage() {
       <button
         onClick={handleSubmit}
         disabled={loading || !selectedSlot}
-        className={`w-full py-3 rounded-xl font-medium transition ${
+        className={`w-full py-3 rounded-2xl font-medium transition ${
           loading || !selectedSlot
             ? "bg-gray-700 text-gray-400"
             : "bg-blue-600 hover:bg-blue-700 text-white"

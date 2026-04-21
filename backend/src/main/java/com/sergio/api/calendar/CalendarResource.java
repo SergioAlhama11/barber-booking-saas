@@ -27,7 +27,7 @@ public class CalendarResource {
             @PathParam("id") Long id
     ) {
 
-        Appointment appointment = appointmentService.findById(slug, id);
+        Appointment appointment = appointmentService.findUpcomingById(slug, id);
 
         String ics = calendarService.generateIcs(appointment);
 

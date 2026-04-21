@@ -82,6 +82,16 @@ public class AppointmentService {
                 .orElseThrow(() -> new NotFoundException("Appointment not found"));
     }
 
+    public Appointment findUpcomingById(String slug, Long id) {
+        Appointment appointment = findById(slug, id);
+
+        if (appointment.getCancelledAt() != null || appointment.getStartTime().isBefore(now())) {
+            throw new NotFoundException("Appointment not available");
+        }
+
+        return appointment;
+    }
+
     public List<Appointment> findByEmail(
             String slug,
             String email,

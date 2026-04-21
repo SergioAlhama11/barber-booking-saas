@@ -45,7 +45,7 @@ public class AppointmentResource {
             @PathParam("slug") @NotBlank String slug,
             @PathParam("id") Long id) {
 
-        return mapper.toDto(appointmentService.findById(slug, id));
+        return mapper.toDto(appointmentService.findUpcomingById(slug, id));
     }
 
     @GET

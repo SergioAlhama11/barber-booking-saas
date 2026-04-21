@@ -67,7 +67,7 @@ export default function BarberSelector({
 
   function getLabel(count?: number) {
     if (count === undefined) return "Consultando...";
-    if (count === 0) return "Hoy completo"; // 🔥 cambio clave
+    if (count === 0) return "Sin huecos hoy";
     if (count <= 3) return "Pocas citas hoy";
     return "Disponible hoy";
   }

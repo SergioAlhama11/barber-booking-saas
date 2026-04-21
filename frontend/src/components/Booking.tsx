@@ -11,7 +11,7 @@ import BookingForm from "./BookingForm";
 import SlotSkeleton from "./SlotSkeleton";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 import { formatSmartDate } from "@/services/dateService";
 import { formatTimeSlot } from "@/services/dateService";
@@ -27,30 +27,35 @@ export default function Booking({
 }) {
   const booking = useBooking(slug);
 
-  // =========================
-  // AUTO SCROLL REFS
-  // =========================
-
-  const barberRef = useRef<HTMLDivElement>(null);
-  const dateRef = useRef<HTMLDivElement>(null);
-  const slotsRef = useRef<HTMLDivElement>(null);
-  const formRef = useRef<HTMLDivElement>(null);
-
-  function scrollTo<T extends HTMLElement>(ref: React.RefObject<T | null>) {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  // =========================
-  // AUTO FLOW
-  // =========================
-
   useEffect(() => {
-    if (booking.hasSearched) scrollTo(slotsRef);
-  }, [booking.hasSearched]);
+    if (booking.selectedService?.id && !booking.selectedService.name) {
+      const fullService = services.find(
+        (service) => service.id === booking.selectedService?.id,
+      );
 
-  useEffect(() => {
-    if (booking.selectedSlot) scrollTo(formRef);
-  }, [booking.selectedSlot]);
+      if (fullService) {
+        booking.hydrateService(fullService);
+      }
+    }
+
+    if (booking.selectedBarber?.id && !booking.selectedBarber.name) {
+      const fullBarber = barbers.find(
+        (barber) => barber.id === booking.selectedBarber?.id,
+      );
+
+      if (fullBarber) {
+        booking.hydrateBarber(fullBarber);
+      }
+    }
+  }, [
+    barbers,
+    booking,
+    booking.selectedBarber?.id,
+    booking.selectedBarber?.name,
+    booking.selectedService?.id,
+    booking.selectedService?.name,
+    services,
+  ]);
 
   // =========================
   // ANIMATION VARIANTS
@@ -62,16 +67,16 @@ export default function Booking({
   };
 
   return (
-    <div className="p-6 max-w-md w-full mx-auto space-y-6">
+    <div className="max-w-md w-full mx-auto space-y-6">
       {booking.selectedService && booking.selectedBarber && (
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border border-gray-800 p-3 rounded-xl"
+          className="sticky top-3 z-30 bg-gray-950/90 backdrop-blur border border-gray-800 px-4 py-3 rounded-2xl shadow-lg shadow-black/20"
         >
-          <div className="flex justify-between items-center text-sm">
-            <div>
-              <p className="font-medium text-white">
+          <div className="flex justify-between items-start gap-4 text-sm">
+            <div className="min-w-0">
+              <p className="font-medium text-white truncate">
                 {booking.selectedService.name}
               </p>
 
@@ -81,14 +86,17 @@ export default function Booking({
                   ` · ${booking.selectedService.price}€`}
               </p>
 
-              <p className="text-gray-400 text-xs">
+              <p className="text-gray-500 text-xs mt-1">
                 {booking.selectedBarber.name}
               </p>
             </div>
 
             {booking.selectedSlot && (
-              <div className="text-right">
-                <p className="text-blue-400 font-semibold">
+              <div className="text-right shrink-0">
+                <p className="text-[11px] uppercase tracking-wide text-gray-500">
+                  Hora
+                </p>
+                <p className="text-blue-400 font-semibold text-base">
                   {formatTimeSlot(booking.selectedSlot)}
                 </p>
               </div>
@@ -103,7 +111,7 @@ export default function Booking({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="p-4 bg-red-900/30 border border-red-700 text-red-400 rounded-xl"
+            className="px-4 py-3 bg-red-900/20 border border-red-800 text-red-300 rounded-2xl text-sm"
           >
             {booking.error}
           </motion.div>
@@ -122,13 +130,7 @@ export default function Booking({
       {/* STEP 2 - BARBER */}
       <AnimatePresence>
         {booking.selectedService && (
-          <motion.div
-            ref={barberRef}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={fadeUp}
-          >
+          <motion.div initial="hidden" animate="visible" exit="hidden" variants={fadeUp}>
             <BarberSelector
               barbers={barbers}
               selectedBarber={booking.selectedBarber}
@@ -144,13 +146,7 @@ export default function Booking({
       {/* STEP 3 - DATE */}
       <AnimatePresence>
         {booking.selectedBarber && (
-          <motion.div
-            ref={dateRef}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={fadeUp}
-          >
+          <motion.div initial="hidden" animate="visible" exit="hidden" variants={fadeUp}>
             <DateSelector
               date={booking.date}
               minDate={booking.today}
@@ -170,13 +166,7 @@ export default function Booking({
       {/* STEP 4 - SLOTS */}
       <AnimatePresence>
         {booking.hasSearched && (
-          <motion.div
-            ref={slotsRef}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={fadeUp}
-          >
+          <motion.div initial="hidden" animate="visible" exit="hidden" variants={fadeUp}>
             <SlotSelector
               slots={booking.slots}
               selectedSlot={booking.selectedSlot}
@@ -185,8 +175,13 @@ export default function Booking({
 
             {/* 👉 SUGERENCIA AUTOMÁTICA (SIN REDUNDANCIA) */}
             {booking.slots.length === 0 && booking.suggestedDate && (
-              <div className="mt-4 text-center space-y-2">
-                <p className="text-gray-400 text-sm">No hay citas hoy</p>
+              <div className="mt-4 rounded-2xl border border-amber-700/40 bg-amber-500/10 px-4 py-4 text-center space-y-2">
+                <p className="text-sm font-medium text-white">
+                  No hay huecos para este día
+                </p>
+                <p className="text-xs text-gray-400">
+                  Te sugerimos la siguiente fecha con disponibilidad.
+                </p>
 
                 <button
                   onClick={async () => {
@@ -194,9 +189,9 @@ export default function Booking({
                     booking.changeDate(next);
                     await booking.loadAvailability(next);
                   }}
-                  className="text-yellow-300 underline text-sm hover:text-yellow-200 transition"
+                  className="inline-flex items-center justify-center rounded-xl bg-amber-300/15 px-4 py-2 text-sm font-medium text-amber-200 hover:bg-amber-300/20 transition"
                 >
-                  👉 Ver disponibilidad {formatSmartDate(booking.suggestedDate)}
+                  Ver disponibilidad {formatSmartDate(booking.suggestedDate)}
                 </button>
               </div>
             )}
@@ -207,13 +202,7 @@ export default function Booking({
       {/* STEP 5 - FORM */}
       <AnimatePresence>
         {booking.selectedSlot && (
-          <motion.div
-            ref={formRef}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={fadeUp}
-          >
+          <motion.div initial="hidden" animate="visible" exit="hidden" variants={fadeUp}>
             <BookingForm
               selectedSlot={booking.selectedSlot}
               customerName={booking.customerName}
