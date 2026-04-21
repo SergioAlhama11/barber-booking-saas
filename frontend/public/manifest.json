@@ -1,6 +1,6 @@
 {
   "name": "Reservas Barbería",
-  "short_name": "Barbería",
+  "short_name": "Trimly",
   "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#000000",
