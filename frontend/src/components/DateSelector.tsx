@@ -24,7 +24,7 @@ export default function DateSelector({
     <div className="mt-6 space-y-4 w-full">
       <h2 className="text-lg font-semibold">Selecciona la fecha</h2>
 
-      <div className="bg-gray-900 text-white rounded-2xl p-4 shadow-lg w-full">
+      <div className="bg-gray-900/70 border border-gray-800 text-white rounded-3xl p-4 shadow-lg w-full">
         <DayPicker
           mode="single"
           locale={es}
@@ -41,10 +41,11 @@ export default function DateSelector({
           disabled={{ before: new Date(minDate) }}
         />
       </div>
-      <p className="text-xs text-gray-400 text-center">
+
+      <p className="text-xs text-gray-500">
         {disabled
           ? "Selecciona un barbero para ver disponibilidad"
-          : "Mostrando disponibilidad automáticamente"}
+          : "La disponibilidad se actualiza al cambiar de día"}
       </p>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Service, Barber } from "@/types";
 import { getAvailability, createAppointment } from "@/services/api";
 import { useRouter } from "next/navigation";
@@ -33,8 +33,6 @@ export function useBooking(slug: string) {
 
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<string>("direct");
-
-  const hasAutoScrolled = useRef(false);
 
   // =========================
   // INIT
@@ -95,7 +93,6 @@ export function useBooking(slug: string) {
     setSelectedSlot(null);
     setHasSearched(false);
     setSuggestedDate(null);
-    hasAutoScrolled.current = false;
   }
 
   function clearError() {
@@ -117,6 +114,22 @@ export function useBooking(slug: string) {
     clearError();
     setSelectedBarber(barber);
     resetSearch();
+  }
+
+  function hydrateService(service: Service) {
+    setSelectedService((current) => {
+      if (!current || current.id !== service.id) return current;
+      if (current.name === service.name) return current;
+      return service;
+    });
+  }
+
+  function hydrateBarber(barber: Barber) {
+    setSelectedBarber((current) => {
+      if (!current || current.id !== barber.id) return current;
+      if (current.name === barber.name) return current;
+      return barber;
+    });
   }
 
   function changeDate(newDate: string) {
@@ -271,6 +284,8 @@ export function useBooking(slug: string) {
     setCustomerEmail,
     selectService,
     selectBarber,
+    hydrateService,
+    hydrateBarber,
     changeDate,
     selectSlot,
     loadAvailability,
