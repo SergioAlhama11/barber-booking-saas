@@ -41,66 +41,96 @@ export default function MyBookingsPage() {
 
   return (
     <AppContainer>
-      {/* HEADER */}
-      <h1 className="text-xl font-bold text-center">📅 Mis citas</h1>
-
-      {/* EMAIL INPUT */}
-      <div className="flex gap-2">
-        <input
-          type="email"
-          placeholder="Introduce tu email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 p-3 rounded-xl bg-gray-900 border border-gray-700 focus:outline-none focus:border-blue-500"
-        />
-
-        <button
-          onClick={handleSearch}
-          disabled={!email}
-          className="bg-blue-600 hover:bg-blue-700 px-4 rounded-xl transition disabled:opacity-50"
-        >
-          Buscar
-        </button>
+      <div className="space-y-3 text-center">
+        <h1 className="flex items-center justify-center gap-3 text-[2.6rem] leading-none font-bold tracking-tight">
+          <span className="text-[2.2rem] leading-none">📅</span>
+          <span>Mis citas</span>
+        </h1>
+        <p className="text-sm text-gray-500">
+          Gestiona tus reservas desde tu email.
+        </p>
       </div>
 
-      {/* STATES */}
+      <div className="rounded-3xl border border-gray-800 bg-gray-950/40 px-4 py-3 space-y-2.5">
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">
+            Buscar reservas
+          </p>
+          <p className="text-sm text-gray-400">
+            Usa el email con el que hiciste la reserva.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
+          <input
+            type="email"
+            placeholder="Introduce tu email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl bg-gray-900 border border-gray-700 focus:outline-none focus:border-blue-500 placeholder:text-gray-500"
+          />
+
+          <button
+            onClick={handleSearch}
+            disabled={!email}
+            className="bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-2xl transition disabled:opacity-50 disabled:hover:bg-blue-600 sm:min-w-[120px]"
+          >
+            Buscar
+          </button>
+        </div>
+      </div>
+
       {loading && (
-        <p className="text-gray-400 text-center text-sm">Cargando citas...</p>
+        <div className="rounded-2xl border border-gray-800 bg-gray-950/40 px-4 py-4 text-center">
+          <p className="text-gray-400 text-sm">Cargando citas...</p>
+        </div>
       )}
 
-      {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+      {error && (
+        <div className="rounded-2xl border border-red-900/50 bg-red-500/10 px-4 py-4 text-center">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
 
-      {/* EMPTY STATE */}
       {!loading &&
         !error &&
         future.length === 0 &&
         past.length === 0 &&
         cancelled.length === 0 && (
-          <p className="text-gray-500 text-center text-sm">
-            No hay citas para este email
-          </p>
+          <div className="rounded-2xl border border-gray-800 bg-gray-950/50 px-4 py-6 text-center space-y-2">
+            <p className="text-white font-medium">
+              No hay citas para este email
+            </p>
+            <p className="text-sm text-gray-500">
+              Prueba con el email que usaste al hacer la reserva.
+            </p>
+          </div>
         )}
 
-      {/* SECTIONS */}
-      <AppointmentSection
-        title="Próximas citas"
-        appointments={future}
-        showCancel
-        onResend={handleResend}
-        onClick={goToDetail}
-      />
+      <div className="space-y-9">
+        <AppointmentSection
+          title="Próximas citas"
+          appointments={future}
+          showCancel
+          onResend={handleResend}
+          onClick={goToDetail}
+          statusVariant="upcoming"
+        />
 
-      <AppointmentSection
-        title="Histórico"
-        appointments={past}
-        onClick={goToDetail}
-      />
+        <AppointmentSection
+          title="Histórico"
+          appointments={past}
+          onClick={goToDetail}
+          statusVariant="past"
+        />
 
-      <AppointmentSection
-        title="Canceladas"
-        appointments={cancelled}
-        onClick={goToDetail}
-      />
+        <AppointmentSection
+          title="Canceladas"
+          appointments={cancelled}
+          onClick={goToDetail}
+          statusVariant="cancelled"
+        />
+      </div>
     </AppContainer>
   );
 }
