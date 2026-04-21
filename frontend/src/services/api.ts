@@ -1,5 +1,5 @@
 import { formatLocalDate } from "./dateService";
-import type { Barber, Service } from "@/types";
+import type { Barber, Barbershop, Service } from "@/types";
 
 // =========================
 // CONFIG
@@ -101,6 +101,10 @@ function buildUrl(slug: string, path: string) {
 // =========================
 // BARBERSHOP
 // =========================
+
+export function getBarbershops() {
+  return apiFetch<Barbershop[]>("/barbershops");
+}
 
 export function getServices(slug: string) {
   return apiFetch<Service[]>(buildUrl(slug, "/services"));

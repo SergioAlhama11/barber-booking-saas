@@ -1,64 +1,63 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+import { getBarbershops } from "@/services/api";
+import HomeEntryGate from "@/components/HomeEntryGate";
+import type { Barbershop } from "@/types";
+
+export default async function Home() {
+  const barbershopsRes = await getBarbershops();
+  const barbershops: Barbershop[] = barbershopsRes.data ?? [];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black text-white">
+      <HomeEntryGate
+        availableSlugs={barbershops.map((barbershop) => barbershop.slug)}
+      />
+
+      <main className="w-full max-w-md mx-auto px-4 py-8 space-y-6">
+        <div className="space-y-3 text-center">
+          <p className="text-5xl">💈</p>
+          <h1 className="text-4xl font-bold tracking-tight">Reserva tu cita</h1>
+          <p className="text-sm text-gray-400">
+            Elige una barbería para entrar a la reserva.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        {barbershops.length === 0 ? (
+          <div className="rounded-3xl border border-gray-800 bg-gray-900/60 px-5 py-6 text-center space-y-2">
+            <p className="font-medium text-white">
+              No hay barberías disponibles
+            </p>
+            <p className="text-sm text-gray-500">
+              Añade una barbería en el sistema para poder empezar.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {barbershops.map((barbershop) => (
+              <Link
+                key={barbershop.id}
+                href={`/barbershops/${barbershop.slug}`}
+                className="block rounded-3xl border border-gray-800 bg-gray-900/60 px-5 py-5 transition hover:border-blue-500/40 hover:bg-gray-900"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xl font-semibold text-white truncate">
+                      {barbershop.name}
+                    </p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {barbershop.slug}
+                    </p>
+                  </div>
+
+                  <span className="shrink-0 rounded-full bg-blue-500/10 px-3 py-2 text-sm text-blue-300">
+                    Entrar
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

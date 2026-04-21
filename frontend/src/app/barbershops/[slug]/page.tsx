@@ -1,4 +1,4 @@
-import { getServices, getBarbers } from "@/services/api";
+import { getBarbershops, getServices, getBarbers } from "@/services/api";
 import { Service, Barber } from "@/types";
 import Booking from "@/components/Booking";
 import Link from "next/link";
@@ -10,7 +10,8 @@ export default async function Page({
 }) {
   const { slug } = await params;
 
-  const [servicesRes, barbersRes] = await Promise.all([
+  const [shopRes, servicesRes, barbersRes] = await Promise.all([
+    getBarbershops(),
     getServices(slug),
     getBarbers(slug),
   ]);
@@ -35,19 +36,18 @@ export default async function Page({
 
   const services: Service[] = servicesRes.data || [];
   const barbers: Barber[] = barbersRes.data || [];
+  const shopName =
+    shopRes.data?.find((s: { slug: string; name: string }) => s.slug === slug)
+      ?.name ??
+    slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black text-white">
-      <div className="w-full px-4 py-6 space-y-6 max-w-md mx-auto sm:max-w-md">
-        {/* =========================
-            HEADER (APP STYLE)
-        ========================= */}
+      <div className="w-full px-4 py-5 space-y-5 max-w-md mx-auto sm:max-w-md">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold leading-tight">
-              💈 {slug.replace("-", " ")}
-            </h1>
-            <p className="text-xs text-gray-400">Reserva rápida en segundos</p>
+            <h1 className="text-xl font-bold leading-tight">💈 {shopName}</h1>
+            <p className="text-xs text-gray-400">Reserva tu cita en segundos</p>
           </div>
 
           <Link
@@ -59,16 +59,10 @@ export default async function Page({
           </Link>
         </div>
 
-        {/* =========================
-            BOOKING CARD
-        ========================= */}
-        <div className="w-full bg-gray-900/60 backdrop-blur border border-gray-800 rounded-2xl p-4 shadow-lg">
+        <div className="w-full bg-gray-900/60 backdrop-blur border border-gray-800 rounded-3xl p-4 shadow-lg">
           <Booking services={services} barbers={barbers} slug={slug} />
         </div>
 
-        {/* =========================
-            FOOTER MICRO UX
-        ========================= */}
         <div className="text-center text-xs text-gray-500">
           💡 Cancelación fácil desde el email
         </div>

@@ -9,3 +9,9 @@ export interface Barber {
   id: number;
   name: string;
 }
+
+export interface Barbershop {
+  id: number;
+  name: string;
+  slug: string;
+}
