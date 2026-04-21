@@ -95,48 +95,46 @@ export default function ConfirmationPage() {
     <div className="min-h-screen bg-black text-white">
       <AppHeader />
 
-      <div className="w-full max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* SUCCESS */}
+      <div className="w-full max-w-md mx-auto px-4 py-5 space-y-5">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-green-500">
+          <h1 className="text-3xl font-bold text-green-500 leading-tight">
             ✅ Reserva confirmada
           </h1>
 
-          <p className="text-sm text-gray-400">Todo listo, te esperamos 💈</p>
-        </div>
-
-        {/* CARD */}
-        <div className="bg-gray-900 border border-gray-800 p-5 rounded-2xl text-left space-y-3">
-          <p>
-            <strong>Servicio:</strong> {appointment.serviceName}
-          </p>
-
-          <p>
-            <strong>Barbero:</strong> {appointment.barberName}
-          </p>
-
-          <p>
-            <strong>Fecha:</strong> {formatDate(appointment.startTime)}
-          </p>
-
-          <p>
-            <strong>Hora:</strong> {formatTime(appointment.startTime)}
-          </p>
-
-          <p>
-            <strong>Email:</strong> {appointment.customerEmail}
+          <p className="text-sm text-gray-400">
+            Todo listo, te esperamos en la barbería.
           </p>
         </div>
 
-        {/* CALENDAR CTA */}
-        <div className="space-y-3">
-          <p className="text-sm text-gray-400">Añádelo a tu calendario 📅</p>
+        <div className="bg-gray-900 border border-gray-800 p-5 rounded-3xl text-left space-y-3">
+          <div className="grid grid-cols-[92px_1fr] gap-y-3 text-sm sm:text-base">
+            <span className="text-gray-400">Servicio</span>
+            <span className="font-medium">{appointment.serviceName}</span>
+
+            <span className="text-gray-400">Barbero</span>
+            <span className="font-medium">{appointment.barberName}</span>
+
+            <span className="text-gray-400">Fecha</span>
+            <span className="font-medium">{formatDate(appointment.startTime)}</span>
+
+            <span className="text-gray-400">Hora</span>
+            <span className="font-medium">{formatTime(appointment.startTime)}</span>
+
+            <span className="text-gray-400">Email</span>
+            <span className="font-medium break-all">
+              {appointment.customerEmail}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm text-gray-400">Añádelo a tu calendario</p>
 
           <a
             href={`/api/barbershops/${slug}/appointments/${id}/calendar`}
-            className="block w-full text-center bg-blue-600 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95"
+            className="block w-full text-center bg-blue-600 py-3 rounded-2xl font-semibold hover:bg-blue-700 transition"
           >
-            📅 Añadir al calendario
+            Añadir al calendario
           </a>
 
           <p className="text-xs text-gray-500">
@@ -144,24 +142,22 @@ export default function ConfirmationPage() {
           </p>
         </div>
 
-        {/* ACTIONS */}
         <div className="flex flex-col gap-3">
           <button
             onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
-            className="w-full bg-blue-600 py-3 rounded-xl hover:bg-blue-700 transition"
+            className="w-full bg-blue-600 py-3 rounded-2xl hover:bg-blue-700 transition"
           >
             Ver mis citas
           </button>
 
           <button
             onClick={() => router.push(`/barbershops/${slug}`)}
-            className="w-full bg-gray-800 py-3 rounded-xl hover:bg-gray-700 transition"
+            className="w-full bg-gray-800 py-3 rounded-2xl hover:bg-gray-700 transition"
           >
             Reservar otra cita
           </button>
         </div>
 
-        {/* AUTO REDIRECT INFO */}
         <p className="text-xs text-gray-500">
           Serás redirigido automáticamente en unos segundos...
         </p>
