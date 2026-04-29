@@ -112,6 +112,16 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
         """, barberId, startTime, email) > 0;
     }
 
+    public boolean existsSameSlotExcludingId(Long barberId, Instant startTime, String email, Long id) {
+        return count("""
+        barberId = ?1
+        and startTime = ?2
+        and customerEmail = ?3
+        and id != ?4
+        and cancelledAt is null
+    """, barberId, startTime, email, id) > 0;
+    }
+
     // AVAILABILITY
 
     public boolean existsOverlapping(Long barberId, Instant start, Instant end) {
