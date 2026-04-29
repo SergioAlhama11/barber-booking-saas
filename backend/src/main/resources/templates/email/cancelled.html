@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<body style="margin:0; font-family:Arial, sans-serif; background:#f6f9fc;">
+
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center">
+
+            <table width="480" style="background:#ffffff; margin:40px 0; border-radius:8px; padding:32px;">
+
+                <!-- TITLE -->
+                <tr>
+                    <td style="font-size:20px; font-weight:600; color:#d93025;">
+                        Tu cita ha sido cancelada
+                    </td>
+                </tr>
+
+                <tr><td height="16"></td></tr>
+
+                <!-- GREETING -->
+                <tr>
+                    <td style="color:#444; font-size:14px;">
+                        Hola {{name}},
+                    </td>
+                </tr>
+
+                <tr><td height="8"></td></tr>
+
+                <!-- MESSAGE -->
+                <tr>
+                    <td style="color:#444; font-size:14px;">
+                        Tu cita ha sido cancelada correctamente.
+                        Si lo deseas, puedes reservar una nueva en cualquier momento.
+                    </td>
+                </tr>
+
+                <tr><td height="20"></td></tr>
+
+                <!-- DETAILS BOX -->
+                <tr>
+                    <td style="background:#fce8e6; padding:16px; border-radius:6px;">
+                        <strong>Servicio:</strong> {{service}}<br>
+                        <strong>Barbero:</strong> {{barber}}<br>
+                        <strong>Fecha:</strong> {{date}}
+                    </td>
+                </tr>
+
+                <tr><td height="24"></td></tr>
+
+                <!-- CTA BUTTON 🔥 -->
+                <tr>
+                    <td align="center">
+                        <a href="{{bookingUrl}}" style="
+                            display:inline-block;
+                            background:#1a73e8;
+                            color:white;
+                            padding:12px 20px;
+                            border-radius:6px;
+                            text-decoration:none;
+                            font-size:14px;
+                            font-weight:500;
+                        ">
+                            Reservar otra cita
+                        </a>
+                    </td>
+                </tr>
+
+                <tr><td height="20"></td></tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style="font-size:12px; color:#888; text-align:center;">
+                        Gracias por confiar en nosotros.
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
