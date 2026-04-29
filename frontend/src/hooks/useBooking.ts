@@ -255,8 +255,13 @@ export function useBooking(slug: string) {
         return;
       }
 
+      // 🔥 guardar sesión automática
+      localStorage.setItem("auth_token", response.data.token);
+      localStorage.setItem("auth_email", customerEmail);
+
+      // 🔥 navegar usando el appointment correcto
       router.push(
-        `/barbershops/${slug}/booking/confirmation/${response.data.id}`,
+        `/barbershops/${slug}/booking/confirmation/${response.data.appointment.id}`,
       );
     } catch {
       setError("Error inesperado");

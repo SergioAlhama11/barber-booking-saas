@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import DateSelector from "@/components/DateSelector";
 import SlotSelector from "@/components/SlotSelector";
 import {
   getAvailability,
   rescheduleAppointment,
   getAppointment,
+  exchangeMagicToken,
   type Appointment,
 } from "@/services/api";
 import {
@@ -21,6 +22,9 @@ import AppContainer from "@/components/AppContainer";
 export default function ReschedulePage() {
   const router = useRouter();
   const { id, slug } = useParams() as { id: string; slug: string };
+  const searchParams = useSearchParams();
+  const rawToken = searchParams.get("token");
+  const magicToken = rawToken && rawToken.length > 10 ? rawToken : undefined;
 
   const today = getTodayLocal();
 
@@ -40,6 +44,21 @@ export default function ReschedulePage() {
 
   useEffect(() => {
     async function load() {
+      try {
+        if (magicToken) {
+          await exchangeMagicToken(magicToken);
+          window.history.replaceState(
+            {},
+            "",
+            `/barbershops/${slug}/my-bookings/${id}/reschedule`,
+          );
+        }
+      } catch {
+        setLoadFailed(true);
+        setError("El enlace no es valido o ha expirado");
+        return;
+      }
+
       const res = await getAppointment(slug, Number(id));
 
       if (res.error || !res.data) {
@@ -52,7 +71,7 @@ export default function ReschedulePage() {
     }
 
     load();
-  }, [id, slug]);
+  }, [id, slug, magicToken]);
 
   // =========================
   // AUTO LOAD SLOTS

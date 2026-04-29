@@ -1,19 +1,16 @@
 "use client";
 
 import { formatDate, formatTime } from "@/services/dateService";
+import type { Appointment } from "@/services/api";
 
 type CardProps = {
-  appointment: any;
-  showCancel?: boolean;
-  onResend?: (id: number) => void;
+  appointment: Appointment;
   onClick?: () => void;
   statusVariant?: "upcoming" | "past" | "cancelled";
 };
 
 export default function AppointmentCard({
   appointment,
-  showCancel,
-  onResend,
   onClick,
   statusVariant = "upcoming",
 }: CardProps) {
@@ -78,19 +75,6 @@ export default function AppointmentCard({
           {appointment.barberName}
         </p>
       </div>
-
-      {showCancel && !isCancelled && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onResend?.(appointment.id);
-          }}
-          className="inline-flex items-center gap-2 text-sm text-blue-300 hover:text-blue-200 transition mt-1"
-        >
-          <span aria-hidden="true">↗</span>
-          Reenviar enlace de cancelación
-        </button>
-      )}
     </div>
   );
 }

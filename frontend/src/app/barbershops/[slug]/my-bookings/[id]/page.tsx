@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { formatDate, formatTime } from "@/services/dateService";
 import AppContainer from "@/components/AppContainer";
-import { getAppointment, type Appointment } from "@/services/api";
+import {
+  getAppointment,
+  cancelAppointment,
+  exchangeMagicToken,
+  type Appointment,
+} from "@/services/api";
 
 export default function BookingDetailPage() {
   const router = useRouter();
@@ -13,8 +18,26 @@ export default function BookingDetailPage() {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const searchParams = useSearchParams();
+  const rawToken = searchParams.get("token");
+  const magicToken = rawToken && rawToken.length > 10 ? rawToken : undefined;
+
   useEffect(() => {
     async function load() {
+      try {
+        if (magicToken) {
+          await exchangeMagicToken(magicToken);
+          window.history.replaceState(
+            {},
+            "",
+            `/barbershops/${slug}/my-bookings/${id}`,
+          );
+        }
+      } catch {
+        setError("El enlace no es valido o ha expirado");
+        return;
+      }
+
       const res = await getAppointment(slug, Number(id));
 
       if (res.error || !res.data) {
@@ -26,7 +49,20 @@ export default function BookingDetailPage() {
     }
 
     load();
-  }, [id, slug]);
+  }, [id, slug, magicToken]);
+
+  async function handleCancel() {
+    if (!confirm("¿Seguro que quieres cancelar la cita?")) return;
+
+    const res = await cancelAppointment(slug, Number(id));
+
+    if (res.error) {
+      setError(res.message ?? "Error cancelando la cita");
+      return;
+    }
+
+    router.replace(`/barbershops/${slug}/my-bookings`);
+  }
 
   if (error) {
     return (
@@ -73,13 +109,19 @@ export default function BookingDetailPage() {
           <span className="font-medium">{appointment.barberName}</span>
 
           <span className="text-gray-400">Fecha</span>
-          <span className="font-medium">{formatDate(appointment.startTime)}</span>
+          <span className="font-medium">
+            {formatDate(appointment.startTime)}
+          </span>
 
           <span className="text-gray-400">Hora</span>
-          <span className="font-medium">{formatTime(appointment.startTime)}</span>
+          <span className="font-medium">
+            {formatTime(appointment.startTime)}
+          </span>
         </div>
 
-        <p className={`font-medium ${isCancelled ? "text-red-400" : "text-green-400"}`}>
+        <p
+          className={`font-medium ${isCancelled ? "text-red-400" : "text-green-400"}`}
+        >
           {isCancelled ? "❌ Cancelada" : "✅ Activa"}
         </p>
       </div>
@@ -89,13 +131,21 @@ export default function BookingDetailPage() {
           <>
             <button
               onClick={() =>
-                router.push(`/barbershops/${slug}/my-bookings/${id}/reschedule`)
+                router.push(
+                  `/barbershops/${slug}/my-bookings/${id}/reschedule`,
+                )
               }
               className="bg-blue-600 hover:bg-blue-700 py-3 rounded-2xl transition font-medium"
             >
               🔄 Modificar cita
             </button>
 
+            <button
+              onClick={() => handleCancel()}
+              className="bg-red-600 hover:bg-red-700 py-3 rounded-2xl transition font-medium"
+            >
+              ❌ Cancelar cita
+            </button>
             <a
               href={`/api/barbershops/${slug}/appointments/${id}/calendar`}
               className="text-center bg-gray-800 hover:bg-gray-700 py-3 rounded-2xl transition font-medium"

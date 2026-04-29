@@ -1,136 +1,178 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppointments } from "@/hooks/useAppointments";
 import AppointmentSection from "@/components/AppointmentSection";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import AppContainer from "@/components/AppContainer";
+import AuthModal from "@/components/AuthModal";
+import { exchangeMagicToken, type Appointment } from "@/services/api";
 
 export default function MyBookingsPage() {
   const router = useRouter();
   const { slug } = useParams() as { slug: string };
 
-  const [email, setEmail] = useState("");
-
-  const { future, past, cancelled, loading, error, fetchAppointments, resend } =
+  const { future, past, cancelled, loading, error, fetchAppointments } =
     useAppointments(slug);
 
-  // 🔥 UX PRO: autoload email
+  const [showAuth, setShowAuth] = useState(false);
+
+  const searchParams = useSearchParams();
+
+  const [initializing, setInitializing] = useState(true);
+
+  const [email, setEmail] = useState<string | null>(null);
+
   useEffect(() => {
-    const saved = localStorage.getItem("booking_email");
-    if (saved) {
-      setEmail(saved);
-      fetchAppointments(saved);
-    }
+    setEmail(localStorage.getItem("auth_email"));
   }, []);
 
-  function handleSearch() {
-    if (!email) return;
-    localStorage.setItem("booking_email", email);
-    fetchAppointments(email);
+  useEffect(() => {
+    const token = searchParams.get("token");
+
+    async function initialize() {
+      try {
+        if (token) {
+          const session = await exchangeMagicToken(token);
+          setEmail(session.email);
+
+          if (session.appointmentId) {
+            router.replace(
+              `/barbershops/${slug}/my-bookings/${session.appointmentId}`,
+            );
+            return;
+          }
+
+          router.replace(`/barbershops/${slug}/my-bookings`);
+        }
+
+        await fetchAppointments();
+      } catch {
+        localStorage.removeItem("auth_token");
+        setShowAuth(true);
+      } finally {
+        setTimeout(() => setInitializing(false), 200);
+      }
+    }
+
+    initialize();
+  }, [slug, searchParams]);
+
+  // 🔥 abrir modal SOLO si expira sesión
+  useEffect(() => {
+    if (error === "SESSION_EXPIRED") {
+      setShowAuth(true);
+    }
+  }, [error]);
+
+  if (initializing) {
+    return <AppContainer>Accediendo a tus citas...</AppContainer>;
   }
 
-  function handleResend(id: number) {
-    resend(id, email);
+  // 🔥 cuando se autentica correctamente
+  function handleAuthSuccess() {
+    setShowAuth(false);
+    setEmail(localStorage.getItem("auth_email"));
+    fetchAppointments();
   }
 
-  function goToDetail(appointment: any) {
+  function goToDetail(appointment: Appointment) {
     if (appointment.cancelledAt) return;
+
     router.push(`/barbershops/${slug}/my-bookings/${appointment.id}`);
   }
 
+  const isEmpty =
+    future.length === 0 && past.length === 0 && cancelled.length === 0;
+
   return (
-    <AppContainer>
-      <div className="space-y-3 text-center">
-        <h1 className="flex items-center justify-center gap-3 text-[2.6rem] leading-none font-bold tracking-tight">
-          <span className="text-[2.2rem] leading-none">📅</span>
-          <span>Mis citas</span>
-        </h1>
-        <p className="text-sm text-gray-500">
-          Gestiona tus reservas desde tu email.
-        </p>
-      </div>
+    <>
+      <AppContainer>
+        {/* HEADER */}
+        <div className="space-y-3 text-center">
+          <h1 className="flex items-center justify-center gap-3 text-[2.4rem] font-bold">
+            <span>📅</span>
 
-      <div className="rounded-3xl border border-gray-800 bg-gray-950/40 px-4 py-3 space-y-2.5">
-        <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">
-            Buscar reservas
+            <span>Mis citas</span>
+          </h1>
+
+          <p className="text-sm text-gray-500">
+            Aquí puedes gestionar tus reservas
           </p>
-          <p className="text-sm text-gray-400">
-            Usa el email con el que hiciste la reserva.
-          </p>
-        </div>
 
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
-          <input
-            type="email"
-            placeholder="Introduce tu email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl bg-gray-900 border border-gray-700 focus:outline-none focus:border-blue-500 placeholder:text-gray-500"
-          />
+          {/* 🔥 NUEVO */}
 
-          <button
-            onClick={handleSearch}
-            disabled={!email}
-            className="bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-2xl transition disabled:opacity-50 disabled:hover:bg-blue-600 sm:min-w-[120px]"
-          >
-            Buscar
-          </button>
-        </div>
-      </div>
-
-      {loading && (
-        <div className="rounded-2xl border border-gray-800 bg-gray-950/40 px-4 py-4 text-center">
-          <p className="text-gray-400 text-sm">Cargando citas...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-2xl border border-red-900/50 bg-red-500/10 px-4 py-4 text-center">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-
-      {!loading &&
-        !error &&
-        future.length === 0 &&
-        past.length === 0 &&
-        cancelled.length === 0 && (
-          <div className="rounded-2xl border border-gray-800 bg-gray-950/50 px-4 py-6 text-center space-y-2">
-            <p className="text-white font-medium">
-              No hay citas para este email
+          {email && (
+            <p className="text-xs text-gray-400">
+              Mostrando citas de <span className="text-white">{email}</span>
             </p>
-            <p className="text-sm text-gray-500">
-              Prueba con el email que usaste al hacer la reserva.
-            </p>
+          )}
+        </div>
+
+        {/* LOADING */}
+        {loading && (
+          <div className="text-center text-gray-400 text-sm">
+            Cargando citas...
           </div>
         )}
 
-      <div className="space-y-9">
-        <AppointmentSection
-          title="Próximas citas"
-          appointments={future}
-          showCancel
-          onResend={handleResend}
-          onClick={goToDetail}
-          statusVariant="upcoming"
-        />
+        {/* EMPTY */}
+        {!loading && !showAuth && isEmpty && (
+          <div className="text-center text-gray-500 text-sm">
+            No tienes citas
+          </div>
+        )}
 
-        <AppointmentSection
-          title="Histórico"
-          appointments={past}
-          onClick={goToDetail}
-          statusVariant="past"
-        />
+        {/* LIST */}
+        {!loading && (
+          <>
+            <div className="space-y-8">
+              <AppointmentSection
+                title="Próximas citas"
+                appointments={future}
+                onClick={goToDetail}
+                statusVariant="upcoming"
+              />
 
-        <AppointmentSection
-          title="Canceladas"
-          appointments={cancelled}
-          onClick={goToDetail}
-          statusVariant="cancelled"
-        />
-      </div>
-    </AppContainer>
+              <AppointmentSection
+                title="Histórico"
+                appointments={past}
+                onClick={goToDetail}
+                statusVariant="past"
+              />
+
+              <AppointmentSection
+                title="Canceladas"
+                appointments={cancelled}
+                onClick={goToDetail}
+                statusVariant="cancelled"
+              />
+            </div>
+
+            {/* 🔥 CAMBIAR CUENTA */}
+            {email && !showAuth && (
+              <button
+                onClick={() => {
+                  localStorage.removeItem("auth_token");
+                  localStorage.removeItem("auth_email");
+                  setEmail(null);
+                  setShowAuth(true);
+                }}
+                className="w-full text-xs text-gray-500 hover:text-gray-300 text-center mt-6"
+              >
+                Cambiar cuenta
+              </button>
+            )}
+          </>
+        )}
+      </AppContainer>
+
+      {/* 🔥 MODAL OTP */}
+      <AuthModal
+        open={showAuth}
+        onSuccess={handleAuthSuccess}
+        onClose={() => setShowAuth(false)}
+      />
+    </>
   );
 }

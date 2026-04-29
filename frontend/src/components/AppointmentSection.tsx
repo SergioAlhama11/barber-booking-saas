@@ -1,21 +1,18 @@
 "use client";
 
 import AppointmentCard from "./AppointmentCard";
+import type { Appointment } from "@/services/api";
 
 type SectionProps = {
   title: string;
-  appointments: any[];
-  showCancel?: boolean;
-  onResend?: (id: number) => void;
-  onClick?: (appointment: any) => void;
+  appointments: Appointment[];
+  onClick?: (appointment: Appointment) => void;
   statusVariant?: "upcoming" | "past" | "cancelled";
 };
 
 export default function AppointmentSection({
   title,
   appointments,
-  showCancel,
-  onResend,
   onClick,
   statusVariant = "upcoming",
 }: SectionProps) {
@@ -41,8 +38,6 @@ export default function AppointmentSection({
           <AppointmentCard
             key={a.id}
             appointment={a}
-            showCancel={showCancel}
-            onResend={onResend}
             onClick={isClickable ? () => onClick(a) : undefined}
             statusVariant={statusVariant}
           />
