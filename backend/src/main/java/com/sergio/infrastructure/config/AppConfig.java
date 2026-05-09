@@ -9,7 +9,14 @@ public class AppConfig {
     @ConfigProperty(name = "app.frontend.url")
     String frontendUrl;
 
+    @ConfigProperty(name = "app.env", defaultValue = "dev")
+    String env;
+
     public String getFrontendUrl() {
         return frontendUrl;
+    }
+
+    public boolean isProd() {
+        return "prod".equalsIgnoreCase(env);
     }
 }

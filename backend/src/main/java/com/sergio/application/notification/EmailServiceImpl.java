@@ -1,108 +1,185 @@
 package com.sergio.application.notification;
 
-import io.quarkus.mailer.Mail;
-import io.quarkus.mailer.Mailer;
+import com.sergio.application.calendar.CalendarService;
+import com.sergio.application.notification.template.EmailTemplateLoader;
+import com.sergio.domain.appointment.Appointment;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @ApplicationScoped
 public class EmailServiceImpl implements EmailService {
 
     private static final Logger LOG = Logger.getLogger(EmailServiceImpl.class);
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy - HH:mm").withZone(ZONE);
+
+    private static final String CONFIRMATION_EMAIL_SUBJECT = "Confirmación de cita - Barbería";
+    private static final String RESCHEDULED_EMAIL_SUBJECT = "Modificación de cita - Barbería";
+    private static final String CANCELLED_EMAIL_SUBJECT = "Cancelación de cita - Barbería";
+    private static final String OTP_EMAIL_SUBJECT = "Código de acceso";
+
+    @Inject BrevoEmailService brevo;
 
     @Inject
-    Mailer mailer;
+    CalendarService calendarService;
+
+    @ConfigProperty(name = "app.env", defaultValue = "dev")
+    String env;
+
+    // =========================
+    // PUBLIC API
+    // =========================
 
     @Override
     public void sendAppointmentConfirmation(
-            String to,
-            String customerName,
-            String cancelUrl
+            Appointment a,
+            String manageUrl,
+            String cancelUrl,
+            String loginUrl
     ) {
+
+        String ics = calendarService.generateIcs(a);
+
+        send(
+                a.getCustomerEmail(),
+                CONFIRMATION_EMAIL_SUBJECT,
+                "confirmation.html",
+                Map.of(
+                        "name", a.getCustomerName(),
+                        "service", a.getServiceName(),
+                        "barber", a.getBarberName(),
+                        "date", format(a.getStartTime()),
+                        "manageUrl", manageUrl,
+                        "cancelUrl", cancelUrl,
+                        "loginUrl", loginUrl
+                ),
+                ics
+        );
+    }
+
+    @Override
+    public void sendAppointmentRescheduled(
+            Appointment a,
+            String manageUrl
+    ) {
+
+        String ics = calendarService.generateIcs(a);
+
+        send(
+                a.getCustomerEmail(),
+                RESCHEDULED_EMAIL_SUBJECT,
+                "rescheduled.html",
+                Map.of(
+                        "name", a.getCustomerName(),
+                        "service", a.getServiceName(),
+                        "barber", a.getBarberName(),
+                        "date", format(a.getStartTime()),
+                        "manageUrl", manageUrl
+                ),
+                ics
+        );
+    }
+
+    @Override
+    public void sendAppointmentCancelled(Appointment appointment, String bookingUrl) {
+        String ics = calendarService.generateCancelledIcs(appointment);
+
+        send(
+                appointment.getCustomerEmail(),
+                CANCELLED_EMAIL_SUBJECT,
+                "cancelled.html",
+                Map.of(
+                        "name", appointment.getCustomerName(),
+                        "service", appointment.getServiceName(),
+                        "barber", appointment.getBarberName(),
+                        "date", format(appointment.getStartTime()),
+                        "bookingUrl", bookingUrl
+                ),
+                ics
+        );
+    }
+
+    @Override
+    public void sendOtp(String to, String code, String magicUrl) {
+        send(
+                to,
+                OTP_EMAIL_SUBJECT,
+                "otp.html",
+                Map.of(
+                        "code", code,
+                        "magicUrl", magicUrl
+                ),
+                null
+        );
+    }
+
+    // =========================
+    // CORE
+    // =========================
+
+    private void send(String to, String subject, String templateName, Map<String, String> values, String icsContent) {
         try {
-            mailer.send(
-                    Mail.withHtml(
-                            to,
-                            buildSubject(),
-                            buildBody(customerName, cancelUrl)
-                    )
-            );
-
-            LOG.infof("Appointment confirmation email sent to %s", to);
-
+            String html = render(EmailTemplateLoader.load(templateName), values);
+            sendEmail(to, subject, html, icsContent);
         } catch (Exception e) {
-            LOG.errorf(e, "Failed to send email to %s", to);
+            LOG.errorf(e, "Failed to send email [%s] to %s", templateName, to);
         }
     }
 
-    private String buildSubject() {
-        // 🔥 sin problemas de encoding en MailHog
-        return "Confirmación de cita - Barbería";
+    private String format(Instant date) {
+        return FORMATTER.format(date);
     }
 
-    private String buildBody(String name, String cancelUrl) {
-        return """
-        <html>
-        <body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Arial, sans-serif;">
-            
-            <div style="max-width:520px; margin:40px auto; background:#ffffff; border-radius:10px; padding:24px;">
+    private void sendEmail(String to, String subject, String html, String ics) {
+        if (isDev()) {
+            logDevEmail(to, html, subject);
+            return;
+        }
+
+        if (ics != null) {
+            brevo.sendWithAttachment(
+                    to,
+                    subject,
+                    html,
+                    "appointment.ics",
+                    ics
+            );
+        } else {
+            brevo.send(to, subject, html);
+        }
+
+        LOG.infof("Email sent to %s", to);
+    }
+
+    private boolean isDev() {
+        return "dev".equalsIgnoreCase(env);
+    }
+
+    private void logDevEmail(String to, String html, String subject) {
+        LOG.infof("""
                 
-                <!-- HEADER -->
-                <h2 style="margin-top:0; color:#222;">
-                    💈 Confirmación de cita
-                </h2>
+                ================= EMAIL DEV =================
+                TO: %s
+                SUBJECT: %s
+                -------------------------------------------
+                %s
+                ===========================================
                 
-                <!-- CONTENT -->
-                <p style="color:#333;">Hola <strong>%s</strong>,</p>
-                
-                <p style="color:#333;">
-                    Tu cita ha sido confirmada correctamente.
-                </p>
-                
-                <p style="color:#333;">
-                    Si necesitas cancelarla, puedes hacerlo desde aquí:
-                </p>
-                
-                <!-- BUTTON -->
-                <div style="text-align:center; margin:30px 0;">
-                    <a href="%s"
-                       style="display:inline-block;
-                              background-color:#e63946;
-                              color:#ffffff;
-                              padding:12px 22px;
-                              text-decoration:none;
-                              border-radius:6px;
-                              font-weight:bold;">
-                        Cancelar cita
-                    </a>
-                </div>
-                
-                <!-- INFO -->
-                <p style="font-size:13px; color:#555;">
-                    Este enlace es personal y dejará de estar disponible antes de la cita.
-                </p>
-                
-                <!-- FALLBACK -->
-                <p style="font-size:12px; color:#777;">
-                    Si el botón no funciona, copia y pega este enlace en tu navegador:
-                </p>
-                
-                <p style="word-break:break-all;">
-                    <a href="%s">Abrir enlace de cancelación</a>
-                </p>
-                
-                <!-- FOOTER -->
-                <hr style="margin:20px 0; border:none; border-top:1px solid #eee;" />
-                
-                <p style="font-size:12px; color:#999;">
-                    Si no solicitaste esta cita, puedes ignorar este mensaje.
-                </p>
-                
-            </div>
-        
-        </body>
-        </html>
-        """.formatted(name, cancelUrl, cancelUrl, cancelUrl);
+                """, to, subject, html);
+    }
+
+    private String render(String template, Map<String, String> values) {
+        String result = template;
+        for (var entry : values.entrySet()) {
+            result = result.replace("{{" + entry.getKey() + "}}", entry.getValue());
+        }
+        return result;
     }
 }

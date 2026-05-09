@@ -4,11 +4,12 @@ import AppHeader from "@/components/AppHeader";
 import { useEffect, useState } from "react";
 import { useSearchParams, useParams } from "next/navigation";
 import CancelStatus from "@/components/CancelStatus";
-import { cancelAppointment } from "@/services/api";
+import { cancelAppointmentByToken } from "@/services/api";
 
 export default function CancelPage() {
   const searchParams = useSearchParams();
   const { slug } = useParams() as { slug: string };
+  const token = searchParams.get("token");
 
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading",
@@ -16,31 +17,25 @@ export default function CancelPage() {
   const [message, setMessage] = useState<string>();
 
   useEffect(() => {
-    const token = searchParams.get("token");
-
     if (!token) {
-      setStatus("error");
-      setMessage("Token no proporcionado");
       return;
     }
 
-    cancelAppointment(token, slug)
+    cancelAppointmentByToken(slug, token)
       .then(() => setStatus("success"))
-      .catch((err: any) => {
+      .catch(() => {
         setStatus("error");
-
-        if (err.status === 404) {
-          setMessage("El enlace no es válido o ya ha sido utilizado");
-        } else {
-          setMessage("Error inesperado");
-        }
+        setMessage("El enlace no es válido o ha expirado");
       });
-  }, [searchParams, slug]);
+  }, [slug, token]);
+
+  const resolvedStatus = token ? status : "error";
+  const resolvedMessage = token ? message : "Token no proporcionado";
 
   return (
     <div className="min-h-screen bg-black text-white">
       <AppHeader />
-      <CancelStatus status={status} message={message} />
+      <CancelStatus status={resolvedStatus} message={resolvedMessage} />
     </div>
   );
 }

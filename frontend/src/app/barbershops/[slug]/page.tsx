@@ -2,6 +2,7 @@ import { getBarbershops, getServices, getBarbers } from "@/services/api";
 import { Service, Barber } from "@/types";
 import Booking from "@/components/Booking";
 import Link from "next/link";
+import MyBookingsEntryHint from "@/components/MyBookingsEntryHint";
 
 export default async function Page({
   params,
@@ -52,19 +53,17 @@ export default async function Page({
 
           <Link
             href={`/barbershops/${slug}/my-bookings`}
-            className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 border border-gray-800 transition"
+            className="inline-flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
           >
-            📅
-            <span className="hidden sm:inline">Mis citas</span>
+            <span aria-hidden="true">📅</span>
+            <span>Mis citas</span>
           </Link>
         </div>
 
+        <MyBookingsEntryHint slug={slug} />
+
         <div className="w-full bg-gray-900/60 backdrop-blur border border-gray-800 rounded-3xl p-4 shadow-lg">
           <Booking services={services} barbers={barbers} slug={slug} />
-        </div>
-
-        <div className="text-center text-xs text-gray-500">
-          💡 Cancelación fácil desde el email
         </div>
       </div>
     </div>

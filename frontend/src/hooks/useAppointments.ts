@@ -1,18 +1,27 @@
-import { useState } from "react";
-import { getAppointmentsByEmail, resendCancelLink } from "@/services/api";
+import { useCallback, useState } from "react";
+import { Appointment, apiFetch } from "@/services/api";
+import { clearAuthSession } from "@/services/authSession";
 
 export function useAppointments(slug: string) {
-  const [appointments, setAppointments] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchAppointments(email: string) {
+  const fetchAppointments = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    const response = await getAppointmentsByEmail(slug, email, "ALL");
+    const response = await apiFetch<Appointment[]>(
+      `/barbershops/${slug}/appointments?filter=ALL`,
+    );
 
     setLoading(false);
+
+    if (response.status === 401 || response.status === 403) {
+      clearAuthSession();
+      setError("SESSION_EXPIRED");
+      return;
+    }
 
     if (response.error || !response.data) {
       setError(response.message || "Error loading appointments");
@@ -25,18 +34,7 @@ export function useAppointments(slug: string) {
     );
 
     setAppointments(sorted);
-  }
-
-  async function resend(id: number, email: string) {
-    const response = await resendCancelLink(slug, id, email);
-
-    if (response.error) {
-      setError(response.message || "Error resending email");
-      return;
-    }
-
-    alert("Email reenviado 📩");
-  }
+  }, [slug]);
 
   const now = new Date();
 
@@ -59,6 +57,5 @@ export function useAppointments(slug: string) {
     loading,
     error,
     fetchAppointments,
-    resend,
   };
 }

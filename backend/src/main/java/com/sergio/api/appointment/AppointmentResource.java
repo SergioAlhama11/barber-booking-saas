@@ -2,14 +2,18 @@ package com.sergio.api.appointment;
 
 import com.sergio.api.appointment.dto.AppointmentResponse;
 import com.sergio.api.appointment.dto.CreateAppointmentRequest;
+import com.sergio.api.appointment.dto.CreateAppointmentResponse;
 import com.sergio.api.appointment.dto.RescheduleAppointmentRequest;
 import com.sergio.api.appointment.mapper.AppointmentMapper;
 import com.sergio.application.appointment.AppointmentService;
+import com.sergio.application.auth.AuthService;
+import com.sergio.application.auth.AuthCookieService;
+import com.sergio.common.util.AuthUtils;
 import com.sergio.domain.appointment.Appointment;
 import com.sergio.domain.appointment.AppointmentFilter;
+import io.vertx.core.http.HttpServerResponse;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
@@ -28,12 +32,31 @@ public class AppointmentResource {
     @Inject
     AppointmentMapper mapper;
 
+    @Inject
+    AuthService authService;
+
+    @Inject
+    AuthCookieService authCookieService;
+
     @Context
     UriInfo uriInfo;
 
+    @Context
+    HttpServerResponse response;
+
     @GET
-    public List<AppointmentResponse> getAll(@PathParam("slug") @NotBlank String slug) {
-        return appointmentService.findAllByBarbershop(slug)
+    public List<AppointmentResponse> getMyAppointments(
+            @PathParam("slug") @NotBlank String slug,
+            @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie,
+            @QueryParam("filter") @DefaultValue("FUTURE") AppointmentFilter filter,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("10") int size
+    ) {
+        String token = AuthUtils.extractToken(authHeader, sessionCookie);
+        String email = authService.getEmailFromSession(token);
+
+        return appointmentService.findByEmail(slug, email, filter, page, size)
                 .stream()
                 .map(mapper::toDto)
                 .toList();
@@ -42,25 +65,44 @@ public class AppointmentResource {
     @GET
     @Path("/{id}")
     public AppointmentResponse getById(
-            @PathParam("slug") @NotBlank String slug,
-            @PathParam("id") Long id) {
+            @PathParam("slug") String slug,
+            @PathParam("id") Long id,
+            @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie,
+            @QueryParam("token") String queryToken
+    ) {
 
-        return mapper.toDto(appointmentService.findUpcomingById(slug, id));
-    }
+        // 🔥 1. PRIORIDAD: magic link
+        if (queryToken != null) {
+            var magic = authService.getMagicSession(queryToken);
 
-    @GET
-    @Path("/by-email")
-    public List<AppointmentResponse> getByEmail(
-            @PathParam("slug") @NotBlank String slug,
-            @QueryParam("email") @NotBlank @Email String email,
-            @QueryParam("filter") @DefaultValue("FUTURE") AppointmentFilter filter,
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size) {
+            if (magic != null) {
+                if (magic.appointmentId() == null || !magic.appointmentId().equals(id)) {
+                    throw new ForbiddenException("Invalid access");
+                }
 
-        return appointmentService.findByEmail(slug, email, filter, page, size)
-                .stream()
-                .map(mapper::toDto)
-                .toList();
+                Appointment a = appointmentService.findById(slug, id);
+
+                if (a == null) {
+                    throw new NotFoundException("Appointment not found");
+                }
+
+                if (!a.getCustomerEmail().equalsIgnoreCase(magic.email())) {
+                    throw new ForbiddenException("Invalid access");
+                }
+
+                return mapper.toDto(a);
+            }
+        }
+
+        // 🔐 2. sesión normal
+        String email = authService.getEmailFromSession(
+                AuthUtils.extractToken(authHeader, sessionCookie)
+        );
+
+        return mapper.toDto(
+                appointmentService.getActiveOwnedAppointment(slug, id, email)
+        );
     }
 
     @POST
@@ -82,9 +124,11 @@ public class AppointmentResource {
                 .path(String.valueOf(created.getId()))
                 .build();
 
+        String sessionToken = authService.createSession(created.getCustomerEmail());
+        authCookieService.writeSessionCookie(response, sessionToken, authService.getSessionTtlSeconds());
+
         return Response.created(location)
-                .entity(mapper.toDto(created))
-                .build();
+                .entity(new CreateAppointmentResponse(mapper.toDto(created))).build();
     }
 
     @POST
@@ -92,9 +136,13 @@ public class AppointmentResource {
     public Response resendCancelLink(
             @PathParam("slug") String slug,
             @PathParam("id") Long id,
-            @QueryParam("email") String email,
+            @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie,
             @HeaderParam("X-Forwarded-For") String forwardedFor,
-            @Context jakarta.ws.rs.core.HttpHeaders headers) {
+            @Context HttpHeaders headers
+    ) {
+        String token = AuthUtils.extractToken(authHeader, sessionCookie);
+        String email = authService.getEmailFromSession(token);
 
         String ip = extractClientIp(forwardedFor, headers);
 
@@ -108,36 +156,45 @@ public class AppointmentResource {
     public AppointmentResponse reschedule(
             @PathParam("slug") String slug,
             @PathParam("id") Long id,
+            @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie,
             @Valid RescheduleAppointmentRequest request
     ) {
-        Appointment updated = appointmentService.reschedule(slug, id, request.startTime());
+        String email = authService.getEmailFromSession(AuthUtils.extractToken(authHeader, sessionCookie));
+        return mapper.toDto(appointmentService.reschedule(slug, id, request.startTime(), email));
+    }
 
-        return mapper.toDto(updated);
+    @DELETE
+    @Path("/{id}")
+    public Response cancel(
+            @PathParam("slug") String slug,
+            @PathParam("id") Long id,
+            @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie
+    ) {
+        String email = authService.getEmailFromSession(AuthUtils.extractToken(authHeader, sessionCookie));
+        appointmentService.cancelByUser(slug, id, email);
+        return Response.noContent().build();
     }
 
     @DELETE
     @Path("/cancel")
-    public Response cancelByToken(
-            @QueryParam("token") @NotBlank String token) {
-
+    public Response cancelByToken(@QueryParam("token") @NotBlank String token) {
         appointmentService.cancelByToken(token);
         return Response.noContent().build();
     }
 
     private String extractClientIp(String forwardedFor, HttpHeaders headers) {
-
-        // 🥇 1. Proxy / producción
         if (forwardedFor != null && !forwardedFor.isBlank()) {
             return forwardedFor.split(",")[0];
         }
 
-        // 🥈 2. fallback local (dev)
         String realIp = headers.getHeaderString("X-Real-IP");
+
         if (realIp != null && !realIp.isBlank()) {
             return realIp;
         }
 
-        // 🥉 3. último fallback (local dev)
         return "127.0.0.1";
     }
 }

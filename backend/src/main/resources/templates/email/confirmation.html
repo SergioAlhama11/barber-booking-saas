@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<body style="margin:0; padding:0; background:#020617; font-family:Arial, sans-serif;">
+
+<span style="display:none;">Tu cita ha sido confirmada ✔</span>
+
+<table width="100%" style="padding:20px 10px;">
+    <tr>
+        <td align="center">
+
+            <table width="100%" style="max-width:600px; background:#111827; border-radius:14px; padding:24px;">
+
+                <!-- HEADER -->
+                <tr>
+                    <td align="center">
+                        <h2 style="color:#fff; margin:0;">💈 Barber Booking</h2>
+                    </td>
+                </tr>
+
+                <!-- TITLE -->
+                <tr>
+                    <td style="color:#fff; font-size:20px; font-weight:bold; padding-top:10px;">
+                        Confirmación de cita
+                    </td>
+                </tr>
+
+                <!-- MESSAGE -->
+                <tr>
+                    <td style="color:#d1d5db; padding-top:10px;">
+                        Hola <strong>{{name}}</strong>,<br/><br/>
+                        Tu cita ha sido confirmada correctamente.
+                    </td>
+                </tr>
+
+                <!-- DETAILS -->
+                <tr>
+                    <td style="color:#9ca3af; padding:16px 0; line-height:1.6;">
+                        📅 {{date}}<br/>
+                        💇 {{service}}<br/>
+                        👤 {{barber}}
+                    </td>
+                </tr>
+
+                <!-- PRIMARY CTA (🔥 DETALLE DIRECTO) -->
+                <tr>
+                    <td align="center" style="padding:10px 0 10px 0;">
+                        <a href="{{manageUrl}}" style="
+                            display:inline-block;
+                            background:#2563eb;
+                            color:#fff;
+                            padding:14px 22px;
+                            border-radius:8px;
+                            text-decoration:none;
+                            font-weight:bold;
+                            font-size:14px;
+                        ">
+                            Gestionar cita
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- CANCEL CTA -->
+                <tr>
+                    <td align="center" style="padding:6px 0 10px 0;">
+                        <a href="{{cancelUrl}}" style="
+                            display:inline-block;
+                            background:#dc2626;
+                            color:#fff;
+                            padding:10px 18px;
+                            border-radius:8px;
+                            text-decoration:none;
+                            font-size:13px;
+                        ">
+                            Cancelar cita
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- SECONDARY CTA (🔐 REQUIERE OTP) -->
+                <tr>
+                    <td align="center" style="padding-top:10px;">
+                        <a href="{{loginUrl}}" style="
+                            color:#9ca3af;
+                            font-size:12px;
+                            text-decoration:underline;
+                        ">
+                            Ver todas mis citas
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style="color:#6b7280; font-size:12px; padding-top:20px; text-align:center;">
+                        Puedes gestionar o cancelar tu cita directamente desde este correo.
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

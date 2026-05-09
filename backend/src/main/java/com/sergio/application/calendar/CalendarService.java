@@ -4,31 +4,30 @@ import com.sergio.domain.appointment.Appointment;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 @ApplicationScoped
 public class CalendarService {
 
-    private static final DateTimeFormatter ICS_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
+    private static final DateTimeFormatter LOCAL_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss");
+    private static final DateTimeFormatter UTC_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
 
     public String generateIcs(Appointment a) {
 
-        String uid = "appointment-" + a.getId() + "@barberapp";
+        String uid = buildUid(a);
+        String now = utcNow();
 
-        String start = formatUtc(a.getStartTime());
-        String end = formatUtc(a.getEndTime());
-
-        String now = now();
+        String start = formatLocal(a.getStartTime());
+        String end = formatLocal(a.getEndTime());
 
         String description = escape(
                 "Cita en barbería\n" +
                         "Servicio: " + a.getServiceName() + "\n" +
                         "Barbero: " + a.getBarberName()
         );
-
-        System.out.println("ICS START: " + a.getStartTime());
-        System.out.println("ICS VERSION: " + a.getCalendarVersion());
 
         return """
 BEGIN:VCALENDAR
@@ -42,8 +41,8 @@ SEQUENCE:%d
 STATUS:CONFIRMED
 DTSTAMP:%s
 LAST-MODIFIED:%s
-DTSTART:%s
-DTEND:%s
+DTSTART;TZID=Europe/Madrid:%s
+DTEND;TZID=Europe/Madrid:%s
 SUMMARY:%s - %s
 DESCRIPTION:%s
 LOCATION:Barbería
@@ -58,9 +57,9 @@ END:VEVENT
 END:VCALENDAR
 """.formatted(
                 uid,
-                a.getCalendarVersion(), // 🔥 clave para updates
+                a.getCalendarVersion(),
                 now,
-                formatUtc(a.getStartTime()),
+                now,
                 start,
                 end,
                 a.getServiceName(),
@@ -70,8 +69,48 @@ END:VCALENDAR
         );
     }
 
-    private String formatUtc(Instant instant) {
-        return ICS_FORMAT.format(instant);
+    public String generateCancelledIcs(Appointment a) {
+        String uid = buildUid(a);
+        String now = utcNow();
+
+        String start = formatLocal(a.getStartTime());
+
+        return """
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//BarberApp//EN
+METHOD:CANCEL
+BEGIN:VEVENT
+UID:%s
+SEQUENCE:%d
+STATUS:CANCELLED
+DTSTAMP:%s
+DTSTART;TZID=Europe/Madrid:%s
+SUMMARY:Cita cancelada
+END:VEVENT
+END:VCALENDAR
+""".formatted(
+                uid,
+                a.getCalendarVersion(),
+                now,
+                start
+        );
+    }
+
+    // =========================
+    // HELPERS
+    // =========================
+
+    private String buildUid(Appointment a) {
+        return "appointment-" + a.getId() + "@barberapp";
+    }
+
+    private String formatLocal(Instant instant) {
+        return instant.atZone(ZONE).format(LOCAL_FORMAT);
+    }
+
+    private String utcNow() {
+        return UTC_FORMAT.format(Instant.now());
     }
 
     private String escape(String text) {
@@ -80,9 +119,5 @@ END:VCALENDAR
                 .replace("\n", "\\n")
                 .replace(",", "\\,")
                 .replace(";", "\\;");
-    }
-
-    private String now() {
-        return ICS_FORMAT.format(Instant.now());
     }
 }

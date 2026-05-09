@@ -1,136 +1,191 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppointments } from "@/hooks/useAppointments";
 import AppointmentSection from "@/components/AppointmentSection";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import AppContainer from "@/components/AppContainer";
+import AuthModal from "@/components/AuthModal";
+import type { Appointment } from "@/services/api";
+import { clearAuthSession } from "@/services/authSession";
+import { useSession } from "@/hooks/useSessions";
+import { useMagicAccess } from "@/hooks/useMagicAccess";
 
 export default function MyBookingsPage() {
   const router = useRouter();
   const { slug } = useParams() as { slug: string };
+  const searchParams = useSearchParams();
+  const { consumeMagicToken, magicMessage, magicToken, setMagicMessage } =
+    useMagicAccess(searchParams.get("token"));
 
-  const [email, setEmail] = useState("");
-
-  const { future, past, cancelled, loading, error, fetchAppointments, resend } =
+  const { future, past, cancelled, loading, error, fetchAppointments } =
     useAppointments(slug);
+  const { email, isLogged, isReady } = useSession();
 
-  // 🔥 UX PRO: autoload email
+  const [showAuth, setShowAuth] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+
   useEffect(() => {
-    const saved = localStorage.getItem("booking_email");
-    if (saved) {
-      setEmail(saved);
-      fetchAppointments(saved);
+    async function initialize() {
+      if (!isReady) return;
+
+      try {
+        if (magicToken) {
+          const session = await consumeMagicToken();
+
+          if (session?.appointmentId) {
+            router.replace(
+              `/barbershops/${slug}/my-bookings/${session.appointmentId}`,
+            );
+            return;
+          }
+
+          router.replace(`/barbershops/${slug}/my-bookings`);
+        }
+
+        if (!isLogged) {
+          setShowAuth(true);
+          return;
+        }
+
+        await fetchAppointments();
+      } catch {
+        clearAuthSession();
+        setShowAuth(true);
+      } finally {
+        setTimeout(() => setInitializing(false), 200);
+      }
     }
-  }, []);
 
-  function handleSearch() {
-    if (!email) return;
-    localStorage.setItem("booking_email", email);
-    fetchAppointments(email);
+    initialize();
+  }, [consumeMagicToken, fetchAppointments, isLogged, isReady, magicToken, router, slug]);
+
+  // 🔥 abrir modal SOLO si expira sesión
+  useEffect(() => {
+    if (error === "SESSION_EXPIRED") {
+      setShowAuth(true);
+    }
+  }, [error]);
+
+  if (initializing) {
+    return <AppContainer>Accediendo a tus citas...</AppContainer>;
   }
 
-  function handleResend(id: number) {
-    resend(id, email);
+  // 🔥 cuando se autentica correctamente
+  function handleAuthSuccess() {
+    setShowAuth(false);
+    setMagicMessage(null);
+    fetchAppointments();
   }
 
-  function goToDetail(appointment: any) {
+  function handleAuthClose() {
+    setShowAuth(false);
+    router.replace(`/barbershops/${slug}`);
+  }
+
+  function goToDetail(appointment: Appointment) {
     if (appointment.cancelledAt) return;
+
     router.push(`/barbershops/${slug}/my-bookings/${appointment.id}`);
   }
 
+  const isEmpty =
+    future.length === 0 && past.length === 0 && cancelled.length === 0;
+
   return (
-    <AppContainer>
-      <div className="space-y-3 text-center">
-        <h1 className="flex items-center justify-center gap-3 text-[2.6rem] leading-none font-bold tracking-tight">
-          <span className="text-[2.2rem] leading-none">📅</span>
-          <span>Mis citas</span>
-        </h1>
-        <p className="text-sm text-gray-500">
-          Gestiona tus reservas desde tu email.
-        </p>
-      </div>
+    <>
+      <AppContainer>
+        {/* HEADER */}
+        <div className="space-y-3 text-center">
+          <h1 className="flex items-center justify-center gap-3 text-[2.4rem] font-bold">
+            <span>📅</span>
 
-      <div className="rounded-3xl border border-gray-800 bg-gray-950/40 px-4 py-3 space-y-2.5">
-        <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">
-            Buscar reservas
+            <span>Mis citas</span>
+          </h1>
+
+          <p className="text-sm text-gray-500">
+            Aquí puedes gestionar tus reservas
           </p>
-          <p className="text-sm text-gray-400">
-            Usa el email con el que hiciste la reserva.
-          </p>
-        </div>
 
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
-          <input
-            type="email"
-            placeholder="Introduce tu email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl bg-gray-900 border border-gray-700 focus:outline-none focus:border-blue-500 placeholder:text-gray-500"
-          />
-
-          <button
-            onClick={handleSearch}
-            disabled={!email}
-            className="bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-2xl transition disabled:opacity-50 disabled:hover:bg-blue-600 sm:min-w-[120px]"
-          >
-            Buscar
-          </button>
-        </div>
-      </div>
-
-      {loading && (
-        <div className="rounded-2xl border border-gray-800 bg-gray-950/40 px-4 py-4 text-center">
-          <p className="text-gray-400 text-sm">Cargando citas...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-2xl border border-red-900/50 bg-red-500/10 px-4 py-4 text-center">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-
-      {!loading &&
-        !error &&
-        future.length === 0 &&
-        past.length === 0 &&
-        cancelled.length === 0 && (
-          <div className="rounded-2xl border border-gray-800 bg-gray-950/50 px-4 py-6 text-center space-y-2">
-            <p className="text-white font-medium">
-              No hay citas para este email
+          {magicMessage && (
+            <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-xs text-green-300">
+              {magicMessage}
             </p>
-            <p className="text-sm text-gray-500">
-              Prueba con el email que usaste al hacer la reserva.
+          )}
+
+          {/* 🔥 NUEVO */}
+
+          {email && (
+            <p className="text-xs text-gray-400">
+              Mostrando citas de <span className="text-white">{email}</span>
             </p>
+          )}
+        </div>
+
+        {/* LOADING */}
+        {loading && (
+          <div className="text-center text-gray-400 text-sm">
+            Cargando citas...
           </div>
         )}
 
-      <div className="space-y-9">
-        <AppointmentSection
-          title="Próximas citas"
-          appointments={future}
-          showCancel
-          onResend={handleResend}
-          onClick={goToDetail}
-          statusVariant="upcoming"
-        />
+        {showAuth && (
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
+            Tu acceso ha caducado o el enlace ya no es valido. Introduce tu
+            email y te enviaremos un codigo.
+          </div>
+        )}
 
-        <AppointmentSection
-          title="Histórico"
-          appointments={past}
-          onClick={goToDetail}
-          statusVariant="past"
-        />
+        {/* EMPTY */}
+        {!loading && !showAuth && isEmpty && (
+          <div className="text-center text-gray-500 text-sm">
+            No tienes citas
+          </div>
+        )}
 
-        <AppointmentSection
-          title="Canceladas"
-          appointments={cancelled}
-          onClick={goToDetail}
-          statusVariant="cancelled"
-        />
-      </div>
-    </AppContainer>
+        {/* LIST */}
+        {!loading && (
+          <>
+            <div className="space-y-8">
+              <AppointmentSection
+                title="Próximas citas"
+                appointments={future}
+                onClick={goToDetail}
+                statusVariant="upcoming"
+              />
+
+              <AppointmentSection
+                title="Histórico"
+                appointments={past}
+                onClick={goToDetail}
+                statusVariant="past"
+              />
+
+              <AppointmentSection
+                title="Canceladas"
+                appointments={cancelled}
+                onClick={goToDetail}
+                statusVariant="cancelled"
+              />
+            </div>
+
+            {/* 🔥 CAMBIAR CUENTA */}
+            {email && !showAuth && (
+              <p className="text-center text-xs text-gray-500 mt-6">
+                Si quieres usar otro email, cierra el acceso desde la parte
+                superior.
+              </p>
+            )}
+          </>
+        )}
+      </AppContainer>
+
+      {/* 🔥 MODAL OTP */}
+      <AuthModal
+        open={showAuth}
+        onSuccess={handleAuthSuccess}
+        onClose={handleAuthClose}
+      />
+    </>
   );
 }

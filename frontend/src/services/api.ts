@@ -18,6 +18,7 @@ export type ApiResponse<T> = {
   error: boolean;
   message?: string;
   data?: T;
+  status?: number;
 };
 
 export type Appointment = {
@@ -35,6 +36,27 @@ export type Availability = {
   slots: string[];
 };
 
+export type MagicSessionExchange = { email: string; appointmentId?: number | null };
+export type SessionResponse = { email: string };
+
+type VerifyOtpResponse = { email: string };
+
+type OtpResponse = {
+  resendInSeconds: number;
+};
+
+type ErrorPayload = {
+  message?: string;
+};
+
+function getErrorMessage(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  if (!("message" in data)) return undefined;
+
+  const message = (data as { message?: unknown }).message;
+  return typeof message === "string" ? message : undefined;
+}
+
 // =========================
 // CORE FETCH
 // =========================
@@ -43,7 +65,7 @@ const defaultHeaders = {
   "Content-Type": "application/json",
 };
 
-async function apiFetch<T>(
+export async function apiFetch<T>(
   url: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
@@ -57,7 +79,7 @@ async function apiFetch<T>(
       cache: "no-store",
     });
 
-    let data: any = null;
+    let data: T | ErrorPayload | null = null;
 
     try {
       data = await res.json();
@@ -68,9 +90,12 @@ async function apiFetch<T>(
         console.error("API ERROR:", `${API_URL}${url}`, res.status, data);
       }
 
+      const isAuthError = res.status === 401 || res.status === 403;
+
       return {
         error: true,
-        message: data?.message || `HTTP ${res.status}`,
+        message: isAuthError ? "SESSION_EXPIRED" : getErrorMessage(data),
+        status: res.status,
       };
     }
 
@@ -98,9 +123,17 @@ function buildUrl(slug: string, path: string) {
   return `/barbershops/${slug}${path}`;
 }
 
+export function getAuthHeader(): Record<string, string> {
+  return {};
+}
+
 // =========================
 // BARBERSHOP
 // =========================
+
+export function getBarbershop(slug: string) {
+  return apiFetch<Barbershop>(buildUrl(slug, ""));
+}
 
 export function getBarbershops() {
   return apiFetch<Barbershop[]>("/barbershops");
@@ -142,7 +175,9 @@ export function getAvailability(
 // =========================
 
 export function getAppointment(slug: string, id: number) {
-  return apiFetch<Appointment>(buildUrl(slug, `/appointments/${id}`));
+  return apiFetch<Appointment>(buildUrl(slug, `/appointments/${id}`), {
+    headers: getAuthHeader(),
+  });
 }
 
 export function createAppointment(
@@ -156,42 +191,27 @@ export function createAppointment(
     source?: string;
   },
 ) {
-  return apiFetch<{ id: number }>(buildUrl(slug, "/appointments"), {
+  return apiFetch<{
+    appointment: Appointment;
+  }>(buildUrl(slug, "/appointments"), {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export function cancelAppointment(token: string, slug: string) {
+export function cancelAppointment(slug: string, id: number) {
+  return apiFetch<void>(buildUrl(slug, `/appointments/${id}`), {
+    method: "DELETE",
+    headers: getAuthHeader(),
+  });
+}
+
+export function cancelAppointmentByToken(slug: string, token: string) {
   const params = new URLSearchParams({ token });
 
   return apiFetch<void>(
     `${buildUrl(slug, "/appointments/cancel")}?${params.toString()}`,
     { method: "DELETE" },
-  );
-}
-
-export function getAppointmentsByEmail(
-  slug: string,
-  email: string,
-  filter: string = "ALL",
-) {
-  const params = new URLSearchParams({
-    email,
-    filter,
-  });
-
-  return apiFetch<Appointment[]>(
-    `${buildUrl(slug, "/appointments/by-email")}?${params.toString()}`,
-  );
-}
-
-export function resendCancelLink(slug: string, id: number, email: string) {
-  const params = new URLSearchParams({ email });
-
-  return apiFetch<void>(
-    `${buildUrl(slug, `/appointments/${id}/resend-cancel-link`)}?${params.toString()}`,
-    { method: "POST" },
   );
 }
 
@@ -203,5 +223,105 @@ export function rescheduleAppointment(
   return apiFetch<Appointment>(buildUrl(slug, `/appointments/${id}`), {
     method: "PUT",
     body: JSON.stringify({ startTime }),
+    headers: getAuthHeader(),
   });
+}
+
+// =========================
+// AUTH
+// =========================
+
+export async function requestOtp(
+  email: string,
+  slug: string,
+): Promise<OtpResponse | null> {
+  const res = await fetch(`/api/auth/request-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, slug }),
+  });
+
+  let data: OtpResponse | ErrorPayload | null = null;
+
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok) {
+    throw new Error(getErrorMessage(data) || "Error enviando código");
+  }
+
+  return data && "resendInSeconds" in data ? data : null;
+}
+
+export async function verifyOtp(
+  email: string,
+  code: string,
+): Promise<VerifyOtpResponse> {
+  const res = await fetch(`/api/auth/verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code }),
+  });
+
+  const data: VerifyOtpResponse | ErrorPayload = await res.json();
+
+  if (!res.ok) {
+    throw new Error("message" in data ? data.message : "Codigo incorrecto");
+  }
+
+  return data as VerifyOtpResponse;
+}
+
+export async function exchangeMagicToken(
+  token: string,
+): Promise<MagicSessionExchange> {
+  const res = await fetch(`/api/auth/exchange-magic`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+
+  let data: MagicSessionExchange | null = null;
+  let errorData: ErrorPayload | null = null;
+
+  try {
+    const parsed = await res.json();
+
+    if (res.ok) {
+      data = parsed as MagicSessionExchange;
+    } else {
+      errorData = parsed as ErrorPayload;
+    }
+  } catch {}
+
+  if (!res.ok || !data) {
+    throw new Error(getErrorMessage(errorData) || "Enlace no valido o expirado");
+  }
+
+  return data;
+}
+
+export async function logoutSession() {
+  await fetch(`/api/auth/logout`, {
+    method: "POST",
+    credentials: "same-origin",
+  });
+}
+
+export async function getCurrentSession(): Promise<SessionResponse | null> {
+  const res = await fetch(`/api/auth/session`, {
+    method: "GET",
+    credentials: "same-origin",
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error("No se pudo comprobar la sesion");
+  }
+
+  return res.json();
 }

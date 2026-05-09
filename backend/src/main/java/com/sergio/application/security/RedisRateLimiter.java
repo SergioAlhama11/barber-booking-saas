@@ -92,4 +92,22 @@ public class RedisRateLimiter {
                 "Too many requests for this email"
         );
     }
+
+    public void checkOtpLimit(String email) {
+        checkLimit(
+                "rl:otp:email:" + email,
+                3, // max intentos
+                Duration.ofMinutes(5),
+                "Too many OTP requests. Try again later"
+        );
+    }
+
+    public void checkOtpVerifyLimit(String email) {
+        checkLimit(
+                "rl:otp:verify:" + email,
+                5,
+                Duration.ofMinutes(5),
+                "Too many attempts"
+        );
+    }
 }

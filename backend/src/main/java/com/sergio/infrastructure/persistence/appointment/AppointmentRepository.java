@@ -112,6 +112,16 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
         """, barberId, startTime, email) > 0;
     }
 
+    public boolean existsSameSlotExcludingId(Long barberId, Instant startTime, String email, Long id) {
+        return count("""
+        barberId = ?1
+        and startTime = ?2
+        and customerEmail = ?3
+        and id != ?4
+        and cancelledAt is null
+    """, barberId, startTime, email, id) > 0;
+    }
+
     // AVAILABILITY
 
     public boolean existsOverlapping(Long barberId, Instant start, Instant end) {
@@ -121,6 +131,33 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             and startTime < ?2
             and endTime > ?3
         """, barberId, end, start) > 0;
+    }
+
+    public boolean existsCustomerOverlap(Long barbershopId, String email, Instant start, Instant end) {
+        return count("""
+            barbershopId = ?1
+            and customerEmail = ?2
+            and cancelledAt is null
+            and startTime < ?3
+            and endTime > ?4
+        """, barbershopId, email, end, start) > 0;
+    }
+
+    public boolean existsCustomerOverlapExcludingId(
+            Long barbershopId,
+            String email,
+            Instant start,
+            Instant end,
+            Long id
+    ) {
+        return count("""
+            barbershopId = ?1
+            and customerEmail = ?2
+            and cancelledAt is null
+            and id != ?3
+            and startTime < ?4
+            and endTime > ?5
+        """, barbershopId, email, id, end, start) > 0;
     }
 
     public boolean existsOverlappingAnyBarber(Long barbershopId, Instant start, Instant end) {

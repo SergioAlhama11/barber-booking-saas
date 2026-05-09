@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Service, Barber } from "@/types";
 import { getAvailability, createAppointment } from "@/services/api";
+import { setAuthSession } from "@/services/authSession";
 import { useRouter } from "next/navigation";
 import {
   buildUTCDateTime,
@@ -74,17 +75,6 @@ export function useBooking(slug: string) {
   }, []);
 
   // =========================
-  // AUTOLOAD
-  // =========================
-
-  useEffect(() => {
-    if (!selectedService?.id || !selectedBarber?.id) return;
-    if (selectedBarber && selectedService) {
-      loadAvailability(date);
-    }
-  }, [selectedBarber, selectedService, date]);
-
-  // =========================
   // HELPERS
   // =========================
 
@@ -147,7 +137,7 @@ export function useBooking(slug: string) {
   // SMART AVAILABILITY
   // =========================
 
-  async function findNextAvailableDate(fromDate: string) {
+  const findNextAvailableDate = useCallback(async (fromDate: string) => {
     if (!selectedBarber || !selectedService) return null;
 
     const base = new Date(fromDate);
@@ -173,13 +163,13 @@ export function useBooking(slug: string) {
     }
 
     return null;
-  }
+  }, [selectedBarber, selectedService, slug]);
 
   // =========================
   // LOAD AVAILABILITY
   // =========================
 
-  async function loadAvailability(customDate?: string) {
+  const loadAvailability = useCallback(async (customDate?: string) => {
     if (!selectedBarber || !selectedService) return;
 
     try {
@@ -217,7 +207,18 @@ export function useBooking(slug: string) {
     } finally {
       setLoadingSlots(false);
     }
-  }
+  }, [date, findNextAvailableDate, selectedBarber, selectedService, slug]);
+
+  // =========================
+  // AUTOLOAD
+  // =========================
+
+  useEffect(() => {
+    if (!selectedService?.id || !selectedBarber?.id) return;
+    if (selectedBarber && selectedService) {
+      loadAvailability(date);
+    }
+  }, [date, loadAvailability, selectedBarber, selectedService]);
 
   // =========================
   // BOOK
@@ -255,8 +256,11 @@ export function useBooking(slug: string) {
         return;
       }
 
+      setAuthSession({ email: customerEmail });
+
+      // 🔥 navegar usando el appointment correcto
       router.push(
-        `/barbershops/${slug}/booking/confirmation/${response.data.id}`,
+        `/barbershops/${slug}/booking/confirmation/${response.data.appointment.id}`,
       );
     } catch {
       setError("Error inesperado");
