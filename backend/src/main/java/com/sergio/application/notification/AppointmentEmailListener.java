@@ -30,7 +30,7 @@ public class AppointmentEmailListener {
                     a,
                     buildManageUrl(event.slug(), a.getId(), a.getCustomerEmail()),
                     buildCancelUrl(event.slug(), event.cancelToken()),
-                    buildLoginUrl(event.slug())
+                    buildLoginUrl(event.slug(), a.getCustomerEmail())
             );
 
         } catch (Exception e) {
@@ -82,8 +82,9 @@ public class AppointmentEmailListener {
                 + "/cancel?token=" + cancelToken;
     }
 
-    private String buildLoginUrl(String slug) {
-        return baseUrl(slug) + "/my-bookings";
+    private String buildLoginUrl(String slug, String email) {
+        String token = authService.createMagicSession(email, null);
+        return baseUrl(slug) + "/my-bookings?token=" + token;
     }
 
     private String buildBookingUrl(String slug) {
