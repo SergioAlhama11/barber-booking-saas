@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import OtpInput from "@/components/OTPInput";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,39 +18,46 @@ export default function AuthModal({
 }: AuthModalProps) {
   const { slug } = useParams() as { slug: string };
   const auth = useAuth(slug);
+  const { email, error, loading, reset, sendOtp, setEmail, step, verify } = auth;
   const [timer, setTimer] = useState(30);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const handleClose = useCallback(() => {
+    reset();
+    setTimer(30);
+    onClose?.();
+  }, [onClose, reset]);
+
   useEffect(() => {
-    if (auth.step !== "otp") return;
+    if (step !== "otp") return;
 
     const interval = setInterval(() => {
       setTimer((t) => (t > 0 ? t - 1 : 0));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [auth.step]);
+  }, [step]);
 
   // ⌨️ cerrar con ESC
   useEffect(() => {
     function handleEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose?.();
+      if (e.key === "Escape") handleClose();
     }
 
     if (open) window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [open]);
+  }, [handleClose, open]);
 
   // 🎯 autofocus email
   useEffect(() => {
-    if (open && auth.step === "email") {
+    if (open && step === "email") {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [open, auth.step]);
+  }, [open, step]);
 
   async function handleSendOtp() {
     setTimer(30);
-    await auth.sendOtp();
+    await sendOtp();
   }
 
   if (!open) return null;
@@ -60,7 +67,7 @@ export default function AuthModal({
       {/* overlay */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* modal */}
@@ -70,7 +77,7 @@ export default function AuthModal({
       >
         {/* ❌ close */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white"
         >
           ✕
@@ -81,42 +88,43 @@ export default function AuthModal({
 
         {/* SUBTITLE */}
         <p className="text-sm text-gray-400">
-          Te enviaremos un código para verificar tu acceso
+          No necesitas cuenta. Te enviaremos un codigo a tu email para acceder
+          a tus citas.
         </p>
 
         {/* EMAIL STEP */}
-        {auth.step === "email" && (
+        {step === "email" && (
           <div className="space-y-3">
             <input
               ref={inputRef}
               type="email"
-              placeholder="Introduce tu email"
-              value={auth.email}
-              onChange={(e) => auth.setEmail(e.target.value)}
+              placeholder="Email con el que hiciste la reserva"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
             />
 
             <button
               onClick={handleSendOtp}
-              disabled={!auth.email || auth.loading}
+              disabled={!email || loading}
               className="w-full bg-blue-600 hover:bg-blue-700 py-2.5 rounded-xl transition disabled:opacity-50"
             >
-              {auth.loading ? "Enviando..." : "Continuar"}
+              {loading ? "Enviando..." : "Continuar"}
             </button>
           </div>
         )}
 
         {/* OTP STEP */}
-        {auth.step === "otp" && (
+        {step === "otp" && (
           <div className="space-y-4">
             <p className="text-sm text-gray-400">
-              Código enviado a <span className="text-white">{auth.email}</span>
+              Codigo enviado a <span className="text-white">{email}</span>
             </p>
 
             <OtpInput
               length={6}
               onComplete={async (code) => {
-                const ok = await auth.verify(code);
+                const ok = await verify(code);
                 if (ok) onSuccess();
               }}
             />
@@ -135,7 +143,7 @@ export default function AuthModal({
 
             {/* CHANGE EMAIL */}
             <button
-              onClick={auth.reset}
+              onClick={reset}
               className="text-xs text-gray-500 hover:text-gray-300"
             >
               Cambiar email
@@ -144,16 +152,16 @@ export default function AuthModal({
         )}
 
         {/* LOADING */}
-        {auth.loading && auth.step === "otp" && (
+        {loading && step === "otp" && (
           <p className="text-gray-400 text-sm">Verificando...</p>
         )}
 
         {/* ERROR */}
-        {auth.error && <p className="text-red-400 text-sm">{auth.error}</p>}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
 
         {/* CANCEL */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="text-xs text-gray-500 hover:text-gray-300"
         >
           Cancelar
