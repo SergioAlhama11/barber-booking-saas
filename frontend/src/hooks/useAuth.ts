@@ -1,40 +1,35 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { requestOtp, verifyOtp } from "@/services/api";
+import { getAuthEmail, setAuthEmail, setAuthSession } from "@/services/authSession";
 
 export function useAuth(slug: string) {
   const [step, setStep] = useState<"email" | "otp">("email");
-  const [email, setEmail] = useState(
-    () => localStorage.getItem("auth_email") || "",
-  );
+  const [email, setEmail] = useState(() => getAuthEmail() || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function sendOtp() {
+  const sendOtp = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
       await requestOtp(email, slug);
-      localStorage.setItem("auth_email", email);
+      setAuthEmail(email);
       setStep("otp");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error enviando código",
-      );
+      setError(err instanceof Error ? err.message : "Error enviando código");
+    } finally {
+      setLoading(false);
     }
+  }, [email, slug]);
 
-    setLoading(false);
-  }
-
-  async function verify(code: string): Promise<boolean> {
+  const verify = useCallback(async (code: string): Promise<boolean> => {
     setLoading(true);
     setError("");
 
     try {
       await verifyOtp(email, code);
-
-      // 🔥 clave para UX
-      localStorage.setItem("auth_email", email);
+      setAuthSession({ email });
 
       return true;
     } catch (err) {
@@ -43,12 +38,12 @@ export function useAuth(slug: string) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [email]);
 
-  function reset() {
+  const reset = useCallback(() => {
     setStep("email");
     setError("");
-  }
+  }, []);
 
   return {
     step,

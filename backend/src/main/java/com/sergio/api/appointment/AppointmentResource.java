@@ -7,9 +7,11 @@ import com.sergio.api.appointment.dto.RescheduleAppointmentRequest;
 import com.sergio.api.appointment.mapper.AppointmentMapper;
 import com.sergio.application.appointment.AppointmentService;
 import com.sergio.application.auth.AuthService;
+import com.sergio.application.auth.AuthCookieService;
 import com.sergio.common.util.AuthUtils;
 import com.sergio.domain.appointment.Appointment;
 import com.sergio.domain.appointment.AppointmentFilter;
+import io.vertx.core.http.HttpServerResponse;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -33,18 +35,25 @@ public class AppointmentResource {
     @Inject
     AuthService authService;
 
+    @Inject
+    AuthCookieService authCookieService;
+
     @Context
     UriInfo uriInfo;
+
+    @Context
+    HttpServerResponse response;
 
     @GET
     public List<AppointmentResponse> getMyAppointments(
             @PathParam("slug") @NotBlank String slug,
             @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie,
             @QueryParam("filter") @DefaultValue("FUTURE") AppointmentFilter filter,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("10") int size
     ) {
-        String token = AuthUtils.extractToken(authHeader);
+        String token = AuthUtils.extractToken(authHeader, sessionCookie);
         String email = authService.getEmailFromSession(token);
 
         return appointmentService.findByEmail(slug, email, filter, page, size)
@@ -59,6 +68,7 @@ public class AppointmentResource {
             @PathParam("slug") String slug,
             @PathParam("id") Long id,
             @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie,
             @QueryParam("token") String queryToken
     ) {
 
@@ -87,7 +97,7 @@ public class AppointmentResource {
 
         // 🔐 2. sesión normal
         String email = authService.getEmailFromSession(
-                AuthUtils.extractToken(authHeader)
+                AuthUtils.extractToken(authHeader, sessionCookie)
         );
 
         return mapper.toDto(
@@ -115,9 +125,10 @@ public class AppointmentResource {
                 .build();
 
         String sessionToken = authService.createSession(created.getCustomerEmail());
+        authCookieService.writeSessionCookie(response, sessionToken, authService.getSessionTtlSeconds());
 
         return Response.created(location)
-                .entity(new CreateAppointmentResponse(mapper.toDto(created), sessionToken)).build();
+                .entity(new CreateAppointmentResponse(mapper.toDto(created))).build();
     }
 
     @POST
@@ -126,10 +137,11 @@ public class AppointmentResource {
             @PathParam("slug") String slug,
             @PathParam("id") Long id,
             @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie,
             @HeaderParam("X-Forwarded-For") String forwardedFor,
             @Context HttpHeaders headers
     ) {
-        String token = AuthUtils.extractToken(authHeader);
+        String token = AuthUtils.extractToken(authHeader, sessionCookie);
         String email = authService.getEmailFromSession(token);
 
         String ip = extractClientIp(forwardedFor, headers);
@@ -145,9 +157,10 @@ public class AppointmentResource {
             @PathParam("slug") String slug,
             @PathParam("id") Long id,
             @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie,
             @Valid RescheduleAppointmentRequest request
     ) {
-        String email = authService.getEmailFromSession(AuthUtils.extractToken(authHeader));
+        String email = authService.getEmailFromSession(AuthUtils.extractToken(authHeader, sessionCookie));
         return mapper.toDto(appointmentService.reschedule(slug, id, request.startTime(), email));
     }
 
@@ -156,9 +169,10 @@ public class AppointmentResource {
     public Response cancel(
             @PathParam("slug") String slug,
             @PathParam("id") Long id,
-            @HeaderParam("Authorization") String authHeader
+            @HeaderParam("Authorization") String authHeader,
+            @CookieParam(AuthCookieService.SESSION_COOKIE_NAME) String sessionCookie
     ) {
-        String email = authService.getEmailFromSession(AuthUtils.extractToken(authHeader));
+        String email = authService.getEmailFromSession(AuthUtils.extractToken(authHeader, sessionCookie));
         appointmentService.cancelByUser(slug, id, email);
         return Response.noContent().build();
     }

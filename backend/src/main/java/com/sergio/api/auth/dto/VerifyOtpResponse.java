@@ -1,3 +1,3 @@
 package com.sergio.api.auth.dto;
 
-public record VerifyOtpResponse(String token) {}
+public record VerifyOtpResponse(String email) {}

@@ -6,37 +6,34 @@ import AppointmentSection from "@/components/AppointmentSection";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import AppContainer from "@/components/AppContainer";
 import AuthModal from "@/components/AuthModal";
-import { exchangeMagicToken, type Appointment } from "@/services/api";
+import type { Appointment } from "@/services/api";
+import { clearAuthSession } from "@/services/authSession";
+import { useSession } from "@/hooks/useSessions";
+import { useMagicAccess } from "@/hooks/useMagicAccess";
 
 export default function MyBookingsPage() {
   const router = useRouter();
   const { slug } = useParams() as { slug: string };
+  const searchParams = useSearchParams();
+  const { consumeMagicToken, magicMessage, magicToken, setMagicMessage } =
+    useMagicAccess(searchParams.get("token"));
 
   const { future, past, cancelled, loading, error, fetchAppointments } =
     useAppointments(slug);
+  const { email, isLogged, isReady } = useSession();
 
   const [showAuth, setShowAuth] = useState(false);
-
-  const searchParams = useSearchParams();
-
   const [initializing, setInitializing] = useState(true);
 
-  const [email, setEmail] = useState<string | null>(null);
-
   useEffect(() => {
-    setEmail(localStorage.getItem("auth_email"));
-  }, []);
-
-  useEffect(() => {
-    const token = searchParams.get("token");
-
     async function initialize() {
-      try {
-        if (token) {
-          const session = await exchangeMagicToken(token);
-          setEmail(session.email);
+      if (!isReady) return;
 
-          if (session.appointmentId) {
+      try {
+        if (magicToken) {
+          const session = await consumeMagicToken();
+
+          if (session?.appointmentId) {
             router.replace(
               `/barbershops/${slug}/my-bookings/${session.appointmentId}`,
             );
@@ -46,9 +43,14 @@ export default function MyBookingsPage() {
           router.replace(`/barbershops/${slug}/my-bookings`);
         }
 
+        if (!isLogged) {
+          setShowAuth(true);
+          return;
+        }
+
         await fetchAppointments();
       } catch {
-        localStorage.removeItem("auth_token");
+        clearAuthSession();
         setShowAuth(true);
       } finally {
         setTimeout(() => setInitializing(false), 200);
@@ -56,7 +58,7 @@ export default function MyBookingsPage() {
     }
 
     initialize();
-  }, [slug, searchParams]);
+  }, [consumeMagicToken, fetchAppointments, isLogged, isReady, magicToken, router, slug]);
 
   // 🔥 abrir modal SOLO si expira sesión
   useEffect(() => {
@@ -72,8 +74,13 @@ export default function MyBookingsPage() {
   // 🔥 cuando se autentica correctamente
   function handleAuthSuccess() {
     setShowAuth(false);
-    setEmail(localStorage.getItem("auth_email"));
+    setMagicMessage(null);
     fetchAppointments();
+  }
+
+  function handleAuthClose() {
+    setShowAuth(false);
+    router.replace(`/barbershops/${slug}`);
   }
 
   function goToDetail(appointment: Appointment) {
@@ -100,6 +107,12 @@ export default function MyBookingsPage() {
             Aquí puedes gestionar tus reservas
           </p>
 
+          {magicMessage && (
+            <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-xs text-green-300">
+              {magicMessage}
+            </p>
+          )}
+
           {/* 🔥 NUEVO */}
 
           {email && (
@@ -113,6 +126,13 @@ export default function MyBookingsPage() {
         {loading && (
           <div className="text-center text-gray-400 text-sm">
             Cargando citas...
+          </div>
+        )}
+
+        {showAuth && (
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
+            Tu acceso ha caducado o el enlace ya no es valido. Introduce tu
+            email y te enviaremos un codigo.
           </div>
         )}
 
@@ -151,17 +171,10 @@ export default function MyBookingsPage() {
 
             {/* 🔥 CAMBIAR CUENTA */}
             {email && !showAuth && (
-              <button
-                onClick={() => {
-                  localStorage.removeItem("auth_token");
-                  localStorage.removeItem("auth_email");
-                  setEmail(null);
-                  setShowAuth(true);
-                }}
-                className="w-full text-xs text-gray-500 hover:text-gray-300 text-center mt-6"
-              >
-                Cambiar cuenta
-              </button>
+              <p className="text-center text-xs text-gray-500 mt-6">
+                Si quieres usar otro email, cierra el acceso desde la parte
+                superior.
+              </p>
             )}
           </>
         )}
@@ -171,7 +184,7 @@ export default function MyBookingsPage() {
       <AuthModal
         open={showAuth}
         onSuccess={handleAuthSuccess}
-        onClose={() => setShowAuth(false)}
+        onClose={handleAuthClose}
       />
     </>
   );

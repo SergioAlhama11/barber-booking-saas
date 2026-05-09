@@ -12,16 +12,22 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 @ApplicationScoped
 public class AuthService {
 
     private static final int OTP_TTL_SECONDS = 300;      // 5 min
+    private static final int MAGIC_SESSION_TTL_SECONDS = 86400; // 24 h
     private static final int SESSION_TTL_SECONDS = 1800; // 30 min
 
     private static final String OTP_PREFIX = "otp:";
     private static final String SESSION_PREFIX = "session:";
+    private static final String SESSION_INDEX_PREFIX = "session:index:";
     private static final String MAGIC_PREFIX = "session:magic:";
+    private static final String MAGIC_INDEX_PREFIX = "session:magic-index:";
+    private static final String SESSION_MAGIC_SOURCE_PREFIX = "session:magic-source:";
     private static final String OTP_ATTEMPTS_PREFIX = "otp:attempts:";
 
     private static final int MAX_ATTEMPTS = 5;
@@ -126,6 +132,8 @@ public class AuthService {
         String email = redisService.get(normalKey);
         if (email != null) {
             refreshSession(normalKey, email);
+            rememberSessionToken(email, token);
+            refreshMagicSource(token);
             return email;
         }
 
@@ -137,6 +145,10 @@ public class AuthService {
     // =========================
 
     public String createSession(String email) {
+        return createSession(email, null);
+    }
+
+    public String createSession(String email, String sourceMagicToken) {
         email = normalizeEmail(email);
 
         String token = generateSecureToken();
@@ -146,8 +158,38 @@ public class AuthService {
                 email,
                 Duration.ofSeconds(SESSION_TTL_SECONDS)
         );
+        rememberSessionToken(email, token);
+
+        if (sourceMagicToken != null && !sourceMagicToken.isBlank()) {
+            redisService.set(
+                SESSION_MAGIC_SOURCE_PREFIX + token,
+                sourceMagicToken,
+                    Duration.ofSeconds(SESSION_TTL_SECONDS)
+            );
+        }
 
         return token;
+    }
+
+    public void invalidateSession(String token) {
+        if (token == null || token.isBlank()) {
+            return;
+        }
+
+        String email = redisService.get(SESSION_PREFIX + token);
+        String sourceMagicToken = redisService.get(SESSION_MAGIC_SOURCE_PREFIX + token);
+        if (sourceMagicToken != null && !sourceMagicToken.isBlank()) {
+            redisService.delete(MAGIC_PREFIX + sourceMagicToken);
+            redisService.delete(SESSION_MAGIC_SOURCE_PREFIX + token);
+        }
+
+        if (email != null && !email.isBlank()) {
+            invalidateSessionsForEmail(email);
+            invalidateMagicSessionsForEmail(email);
+            return;
+        }
+
+        redisService.delete(SESSION_PREFIX + token);
     }
 
     public MagicSession exchangeMagicSession(String token) {
@@ -171,8 +213,6 @@ public class AuthService {
             return null;
         }
 
-        redisService.delete(MAGIC_PREFIX + token);
-
         try {
             return objectMapper.readValue(data, MagicSession.class);
         } catch (Exception e) {
@@ -191,8 +231,9 @@ public class AuthService {
             redisService.set(
                     MAGIC_PREFIX + token,
                     objectMapper.writeValueAsString(session),
-                    Duration.ofSeconds(OTP_TTL_SECONDS)
+                    Duration.ofSeconds(MAGIC_SESSION_TTL_SECONDS)
             );
+            rememberMagicToken(email, token);
         } catch (Exception e) {
             throw new RuntimeException("Error serializing magic session", e);
         }
@@ -209,6 +250,100 @@ public class AuthService {
                 key,
                 email,
                 Duration.ofSeconds(SESSION_TTL_SECONDS)
+        );
+    }
+
+    private void refreshMagicSource(String token) {
+        String sourceMagicToken = redisService.get(SESSION_MAGIC_SOURCE_PREFIX + token);
+        if (sourceMagicToken == null || sourceMagicToken.isBlank()) {
+            return;
+        }
+
+        redisService.set(
+                SESSION_MAGIC_SOURCE_PREFIX + token,
+                sourceMagicToken,
+                Duration.ofSeconds(SESSION_TTL_SECONDS)
+        );
+    }
+
+    private void rememberSessionToken(String email, String token) {
+        try {
+            List<String> tokens = readSessionTokens(email);
+            if (!tokens.contains(token)) {
+                tokens.add(token);
+            }
+
+            redisService.set(
+                    SESSION_INDEX_PREFIX + email,
+                    objectMapper.writeValueAsString(tokens),
+                    Duration.ofSeconds(SESSION_TTL_SECONDS)
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Error storing session index", e);
+        }
+    }
+
+    private void rememberMagicToken(String email, String token) throws Exception {
+        List<String> tokens = readMagicTokens(email);
+        if (!tokens.contains(token)) {
+            tokens.add(token);
+        }
+
+        redisService.set(
+                MAGIC_INDEX_PREFIX + email,
+                objectMapper.writeValueAsString(tokens),
+                Duration.ofSeconds(MAGIC_SESSION_TTL_SECONDS)
+        );
+    }
+
+    private void invalidateMagicSessionsForEmail(String email) {
+        try {
+            List<String> tokens = readMagicTokens(email);
+            for (String magicToken : tokens) {
+                redisService.delete(MAGIC_PREFIX + magicToken);
+            }
+        } catch (Exception ignored) {
+            // If the magic index is malformed, just clear the index key below.
+        }
+
+        redisService.delete(MAGIC_INDEX_PREFIX + email);
+    }
+
+    private void invalidateSessionsForEmail(String email) {
+        try {
+            List<String> tokens = readSessionTokens(email);
+            for (String sessionToken : tokens) {
+                redisService.delete(SESSION_PREFIX + sessionToken);
+                redisService.delete(SESSION_MAGIC_SOURCE_PREFIX + sessionToken);
+            }
+        } catch (Exception ignored) {
+            // If the session index is malformed, just clear the index key below.
+        }
+
+        redisService.delete(SESSION_INDEX_PREFIX + email);
+    }
+
+    private List<String> readMagicTokens(String email) throws Exception {
+        String data = redisService.get(MAGIC_INDEX_PREFIX + email);
+        if (data == null || data.isBlank()) {
+            return new ArrayList<>();
+        }
+
+        return objectMapper.readValue(
+                data,
+                objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)
+        );
+    }
+
+    private List<String> readSessionTokens(String email) throws Exception {
+        String data = redisService.get(SESSION_INDEX_PREFIX + email);
+        if (data == null || data.isBlank()) {
+            return new ArrayList<>();
+        }
+
+        return objectMapper.readValue(
+                data,
+                objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)
         );
     }
 
@@ -243,5 +378,9 @@ public class AuthService {
         } catch (Exception e) {
             throw new RuntimeException("Error hashing value", e);
         }
+    }
+
+    public int getSessionTtlSeconds() {
+        return SESSION_TTL_SECONDS;
     }
 }

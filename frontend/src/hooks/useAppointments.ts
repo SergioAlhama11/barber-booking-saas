@@ -1,37 +1,24 @@
-import { useState } from "react";
-import { Appointment } from "@/services/api";
-import { apiFetch } from "@/services/api";
+import { useCallback, useState } from "react";
+import { Appointment, apiFetch } from "@/services/api";
+import { clearAuthSession } from "@/services/authSession";
 
 export function useAppointments(slug: string) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchAppointments() {
+  const fetchAppointments = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    const token = localStorage.getItem("auth_token");
-
-    if (!token) {
-      setError("SESSION_EXPIRED");
-      setLoading(false);
-      return;
-    }
-
     const response = await apiFetch<Appointment[]>(
       `/barbershops/${slug}/appointments?filter=ALL`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
     );
 
     setLoading(false);
 
     if (response.status === 401 || response.status === 403) {
-      localStorage.removeItem("auth_token");
+      clearAuthSession();
       setError("SESSION_EXPIRED");
       return;
     }
@@ -47,7 +34,7 @@ export function useAppointments(slug: string) {
     );
 
     setAppointments(sorted);
-  }
+  }, [slug]);
 
   const now = new Date();
 

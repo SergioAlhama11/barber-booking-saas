@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import DateSelector from "@/components/DateSelector";
 import SlotSelector from "@/components/SlotSelector";
@@ -8,7 +8,6 @@ import {
   getAvailability,
   rescheduleAppointment,
   getAppointment,
-  exchangeMagicToken,
   type Appointment,
 } from "@/services/api";
 import {
@@ -18,13 +17,15 @@ import {
   getTodayLocal,
 } from "@/services/dateService";
 import AppContainer from "@/components/AppContainer";
+import { useMagicAccess } from "@/hooks/useMagicAccess";
 
 export default function ReschedulePage() {
   const router = useRouter();
   const { id, slug } = useParams() as { id: string; slug: string };
   const searchParams = useSearchParams();
-  const rawToken = searchParams.get("token");
-  const magicToken = rawToken && rawToken.length > 10 ? rawToken : undefined;
+  const { consumeMagicToken, magicMessage, magicToken } = useMagicAccess(
+    searchParams.get("token"),
+  );
 
   const today = getTodayLocal();
 
@@ -46,7 +47,7 @@ export default function ReschedulePage() {
     async function load() {
       try {
         if (magicToken) {
-          await exchangeMagicToken(magicToken);
+          await consumeMagicToken();
           window.history.replaceState(
             {},
             "",
@@ -71,22 +72,17 @@ export default function ReschedulePage() {
     }
 
     load();
-  }, [id, slug, magicToken]);
+  }, [consumeMagicToken, id, magicToken, slug]);
 
   // =========================
   // AUTO LOAD SLOTS
   // =========================
 
-  useEffect(() => {
-    if (!appointment) return;
-    loadSlots(date);
-  }, [appointment, date]);
-
   // =========================
   // LOAD SLOTS
   // =========================
 
-  async function loadSlots(targetDate?: string) {
+  const loadSlots = useCallback(async (targetDate?: string) => {
     if (!appointment) return;
 
     try {
@@ -116,7 +112,12 @@ export default function ReschedulePage() {
     } finally {
       setLoadingSlots(false);
     }
-  }
+  }, [appointment, date, slug]);
+
+  useEffect(() => {
+    if (!appointment) return;
+    loadSlots(date);
+  }, [appointment, date, loadSlots]);
 
   // =========================
   // SUBMIT
@@ -209,6 +210,12 @@ export default function ReschedulePage() {
   return (
     <AppContainer>
       <h1 className="text-xl font-bold text-center">🔄 Modificar cita</h1>
+
+      {magicMessage && (
+        <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-center text-xs text-green-300">
+          {magicMessage}
+        </p>
+      )}
 
       <div className="text-center text-gray-400 text-sm space-y-1">
         <p>

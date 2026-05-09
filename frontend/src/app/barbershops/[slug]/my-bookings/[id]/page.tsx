@@ -7,9 +7,9 @@ import AppContainer from "@/components/AppContainer";
 import {
   getAppointment,
   cancelAppointment,
-  exchangeMagicToken,
   type Appointment,
 } from "@/services/api";
+import { useMagicAccess } from "@/hooks/useMagicAccess";
 
 export default function BookingDetailPage() {
   const router = useRouter();
@@ -19,14 +19,15 @@ export default function BookingDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
-  const rawToken = searchParams.get("token");
-  const magicToken = rawToken && rawToken.length > 10 ? rawToken : undefined;
+  const { consumeMagicToken, magicMessage, magicToken } = useMagicAccess(
+    searchParams.get("token"),
+  );
 
   useEffect(() => {
     async function load() {
       try {
         if (magicToken) {
-          await exchangeMagicToken(magicToken);
+          await consumeMagicToken();
           window.history.replaceState(
             {},
             "",
@@ -49,7 +50,7 @@ export default function BookingDetailPage() {
     }
 
     load();
-  }, [id, slug, magicToken]);
+  }, [consumeMagicToken, id, magicToken, slug]);
 
   async function handleCancel() {
     if (!confirm("¿Seguro que quieres cancelar la cita?")) return;
@@ -93,6 +94,12 @@ export default function BookingDetailPage() {
   return (
     <AppContainer>
       <h1 className="text-xl font-bold text-center">Detalle de la cita</h1>
+
+      {magicMessage && (
+        <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-center text-xs text-green-300">
+          {magicMessage}
+        </p>
+      )}
 
       <div
         className={`p-5 rounded-3xl border space-y-4 ${
