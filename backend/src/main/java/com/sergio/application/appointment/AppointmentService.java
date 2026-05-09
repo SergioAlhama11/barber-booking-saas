@@ -90,6 +90,7 @@ public class AppointmentService {
         Instant end = start.plus(Duration.ofMinutes(service.getDurationMinutes()));
 
         validateSchedule(appointment.getBarberId(), start, end);
+        validateCustomerNoOverlap(barbershopId, appointment.getCustomerEmail(), start, end);
 
         // 🔥 evitar duplicados exactos (CRÍTICO)
         validateNoDuplicateSlot(
@@ -133,6 +134,7 @@ public class AppointmentService {
         Instant newEnd = newStart.plus(Duration.ofMinutes(service.getDurationMinutes()));
 
         validateSchedule(entity.getBarberId(), newStart, newEnd);
+        validateCustomerNoOverlap(barbershopId, entity.getCustomerEmail(), newStart, newEnd, entity.getId());
 
         validateNoDuplicateSlot(entity.getBarberId(), newStart, entity.getCustomerEmail(), entity.getId());
 
@@ -265,6 +267,18 @@ public class AppointmentService {
     private void validateNoDuplicateSlot(Long barberId, Instant startTime, String email, Long id) {
         if (appointmentRepository.existsSameSlotExcludingId(barberId, startTime, email, id)) {
             throw new InvalidAppointmentException("You already booked this time slot");
+        }
+    }
+
+    private void validateCustomerNoOverlap(Long barbershopId, String email, Instant start, Instant end) {
+        if (appointmentRepository.existsCustomerOverlap(barbershopId, email, start, end)) {
+            throw new InvalidAppointmentException("You already have another appointment at this time");
+        }
+    }
+
+    private void validateCustomerNoOverlap(Long barbershopId, String email, Instant start, Instant end, Long id) {
+        if (appointmentRepository.existsCustomerOverlapExcludingId(barbershopId, email, start, end, id)) {
+            throw new InvalidAppointmentException("You already have another appointment at this time");
         }
     }
 
