@@ -20,7 +20,7 @@ public class AuthCookieService {
                 .setPath("/")
                 .setHttpOnly(true)
                 .setSecure(appConfig.isProd())
-                .setSameSite(CookieSameSite.LAX)
+                .setSameSite(CookieSameSite.NONE)
                 .setMaxAge(maxAgeSeconds);
 
         response.addCookie(cookie);
@@ -31,7 +31,7 @@ public class AuthCookieService {
                 .setPath("/")
                 .setHttpOnly(true)
                 .setSecure(appConfig.isProd())
-                .setSameSite(CookieSameSite.LAX)
+                .setSameSite(CookieSameSite.NONE)
                 .setMaxAge(0);
 
         response.addCookie(cookie);

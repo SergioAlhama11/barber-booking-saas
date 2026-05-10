@@ -48,7 +48,10 @@ export default async function Page({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold leading-tight">💈 {shopName}</h1>
-            <p className="text-xs text-gray-400">Reserva tu cita en segundos</p>
+            <p className="text-xs text-gray-400">
+              {" "}
+              Reserva tu cita en segundos
+            </p>
           </div>
 
           <Link
