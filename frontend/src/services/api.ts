@@ -72,6 +72,7 @@ export async function apiFetch<T>(
   try {
     const res = await fetch(`${API_URL}${url}`, {
       ...options,
+      credentials: "include",
       headers: {
         ...defaultHeaders,
         ...(options?.headers || {}),
@@ -307,14 +308,16 @@ export async function exchangeMagicToken(
 export async function logoutSession() {
   await fetch(`${API_URL}/auth/logout`, {
     method: "POST",
-    credentials: "same-origin",
+    //credentials: "same-origin",
+    credentials: "include",
   });
 }
 
 export async function getCurrentSession(): Promise<SessionResponse | null> {
   const res = await fetch(`${API_URL}/auth/session`, {
     method: "GET",
-    credentials: "same-origin",
+    //credentials: "same-origin",
+    credentials: "include",
   });
 
   if (res.status === 401 || res.status === 403) {
