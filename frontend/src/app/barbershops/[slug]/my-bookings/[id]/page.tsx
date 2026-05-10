@@ -68,11 +68,11 @@ export default function BookingDetailPage() {
   if (error) {
     return (
       <AppContainer>
-        <div className="space-y-4 text-center">
-          <p className="text-red-400 font-medium">{error}</p>
+        <div className="rounded-[30px] border border-red-500/20 bg-red-500/10 px-5 py-6 text-center space-y-4">
+          <p className="text-lg font-semibold text-red-200">{error}</p>
           <button
             onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
-            className="bg-blue-600 hover:bg-blue-700 py-3 rounded-2xl transition font-medium"
+            className="w-full rounded-2xl bg-white py-3.5 font-medium text-black transition hover:bg-slate-200"
           >
             Volver a mis citas
           </button>
@@ -84,7 +84,9 @@ export default function BookingDetailPage() {
   if (!appointment) {
     return (
       <AppContainer>
-        <p className="text-center text-gray-400 text-sm">Cargando...</p>
+        <div className="rounded-[28px] border border-white/8 bg-[#121826] px-5 py-7 text-center text-sm text-gray-400">
+          Cargando...
+        </div>
       </AppContainer>
     );
   }
@@ -93,47 +95,99 @@ export default function BookingDetailPage() {
 
   return (
     <AppContainer>
-      <h1 className="text-xl font-bold text-center">Detalle de la cita</h1>
+      <section className="rounded-[34px] border border-white/8 bg-[linear-gradient(180deg,rgba(18,24,38,0.98),rgba(11,16,26,0.98))] px-5 py-6 shadow-[0_12px_40px_rgba(0,0,0,0.28)]">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.2em] text-gray-300">
+            Detalle de la cita
+          </div>
+
+          <div className="flex items-end justify-between gap-3">
+            <div className="space-y-1">
+              <h1 className="text-[2.35rem] font-semibold leading-none tracking-tight text-white">
+                {appointment.serviceName}
+              </h1>
+              <p className="text-sm text-gray-400">
+                {appointment.barberName} · {formatDate(appointment.startTime)}
+              </p>
+            </div>
+
+            <div className="text-right">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">
+                Hora
+              </p>
+              <p className="text-[2.15rem] font-semibold leading-none text-white">
+                {formatTime(appointment.startTime)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {magicMessage && (
-        <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-center text-xs text-green-300">
+        <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-center text-sm text-green-200">
           {magicMessage}
         </p>
       )}
 
-      <div
-        className={`p-5 rounded-3xl border space-y-4 ${
+      <section
+        className={`rounded-[30px] border px-5 py-5 shadow-[0_10px_40px_rgba(0,0,0,0.22)] ${
           isCancelled
-            ? "bg-gray-900 border-red-800 opacity-80"
-            : "bg-gray-900 border-gray-800"
+            ? "border-red-500/20 bg-[#16131a]"
+            : "border-white/8 bg-[#121826]"
         }`}
       >
-        <div className="grid grid-cols-[84px_1fr] gap-y-3 text-sm sm:text-base">
-          <span className="text-gray-400">Servicio</span>
-          <span className="font-medium">{appointment.serviceName}</span>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-white/6 bg-black/20 px-3 py-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
+              Servicio
+            </p>
+            <p className="mt-1 text-base font-medium text-white">
+              {appointment.serviceName}
+            </p>
+          </div>
 
-          <span className="text-gray-400">Barbero</span>
-          <span className="font-medium">{appointment.barberName}</span>
+          <div className="rounded-2xl border border-white/6 bg-black/20 px-3 py-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
+              Barbero
+            </p>
+            <p className="mt-1 text-base font-medium text-white">
+              {appointment.barberName}
+            </p>
+          </div>
 
-          <span className="text-gray-400">Fecha</span>
-          <span className="font-medium">
-            {formatDate(appointment.startTime)}
-          </span>
+          <div className="rounded-2xl border border-white/6 bg-black/20 px-3 py-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
+              Fecha
+            </p>
+            <p className="mt-1 text-base font-medium text-white">
+              {formatDate(appointment.startTime)}
+            </p>
+          </div>
 
-          <span className="text-gray-400">Hora</span>
-          <span className="font-medium">
-            {formatTime(appointment.startTime)}
-          </span>
+          <div className="rounded-2xl border border-white/6 bg-black/20 px-3 py-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
+              Hora
+            </p>
+            <p className="mt-1 text-base font-medium text-white">
+              {formatTime(appointment.startTime)}
+            </p>
+          </div>
         </div>
 
-        <p
-          className={`font-medium ${isCancelled ? "text-red-400" : "text-green-400"}`}
-        >
-          {isCancelled ? "❌ Cancelada" : "✅ Activa"}
-        </p>
-      </div>
+        <div className="mt-4">
+          <span
+            className={`inline-flex rounded-full border px-3 py-1.5 text-sm font-medium ${
+              isCancelled
+                ? "border-red-500/20 bg-red-500/10 text-red-200"
+                : "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+            }`}
+          >
+            {isCancelled ? "Cancelada" : "Activa"}
+          </span>
+        </div>
+      </section>
 
-      <div className="flex flex-col gap-3">
+      <div className="space-y-3">
         {!isCancelled ? (
           <>
             <button
@@ -142,28 +196,28 @@ export default function BookingDetailPage() {
                   `/barbershops/${slug}/my-bookings/${id}/reschedule`,
                 )
               }
-              className="bg-blue-600 hover:bg-blue-700 py-3 rounded-2xl transition font-medium"
+              className="w-full rounded-2xl bg-blue-600 py-3.5 font-semibold text-white transition hover:bg-blue-500"
             >
-              🔄 Modificar cita
+              Modificar cita
             </button>
 
             <button
               onClick={() => handleCancel()}
-              className="bg-red-600 hover:bg-red-700 py-3 rounded-2xl transition font-medium"
+              className="w-full rounded-2xl bg-red-600 py-3.5 font-semibold text-white transition hover:bg-red-500"
             >
-              ❌ Cancelar cita
+              Cancelar cita
             </button>
             <a
               href={`/api/barbershops/${slug}/appointments/${id}/calendar`}
-              className="text-center bg-gray-800 hover:bg-gray-700 py-3 rounded-2xl transition font-medium"
+              className="block w-full rounded-2xl border border-white/8 bg-white/[0.04] py-3.5 text-center font-medium text-white transition hover:bg-white/[0.07]"
             >
-              📅 Añadir al calendario
+              Añadir al calendario
             </a>
           </>
         ) : (
           <button
             onClick={() => router.push(`/barbershops/${slug}`)}
-            className="bg-green-600 hover:bg-green-700 py-3 rounded-2xl transition font-medium"
+            className="w-full rounded-2xl bg-white py-3.5 font-semibold text-black transition hover:bg-slate-200"
           >
             Reservar nueva cita
           </button>
@@ -171,9 +225,9 @@ export default function BookingDetailPage() {
 
         <button
           onClick={() => router.back()}
-          className="bg-gray-100 text-black py-3 rounded-2xl font-medium"
+          className="w-full rounded-2xl border border-white/8 bg-white/[0.04] py-3.5 font-medium text-white transition hover:bg-white/[0.07]"
         >
-          ← Volver
+          Volver
         </button>
       </div>
     </AppContainer>

@@ -36,7 +36,10 @@ export type Availability = {
   slots: string[];
 };
 
-export type MagicSessionExchange = { email: string; appointmentId?: number | null };
+export type MagicSessionExchange = {
+  email: string;
+  appointmentId?: number | null;
+};
 export type SessionResponse = { email: string };
 
 type VerifyOtpResponse = { email: string };
@@ -235,7 +238,7 @@ export async function requestOtp(
   email: string,
   slug: string,
 ): Promise<OtpResponse | null> {
-  const res = await fetch(`/api/auth/request-otp`, {
+  const res = await fetch(`${API_URL}/auth/request-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, slug }),
@@ -258,7 +261,7 @@ export async function verifyOtp(
   email: string,
   code: string,
 ): Promise<VerifyOtpResponse> {
-  const res = await fetch(`/api/auth/verify-otp`, {
+  const res = await fetch(`${API_URL}/auth/verify-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, code }),
@@ -276,7 +279,7 @@ export async function verifyOtp(
 export async function exchangeMagicToken(
   token: string,
 ): Promise<MagicSessionExchange> {
-  const res = await fetch(`/api/auth/exchange-magic`, {
+  const res = await fetch(`${API_URL}/auth/exchange-magic`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token }),
@@ -296,21 +299,23 @@ export async function exchangeMagicToken(
   } catch {}
 
   if (!res.ok || !data) {
-    throw new Error(getErrorMessage(errorData) || "Enlace no valido o expirado");
+    throw new Error(
+      getErrorMessage(errorData) || "Enlace no valido o expirado",
+    );
   }
 
   return data;
 }
 
 export async function logoutSession() {
-  await fetch(`/api/auth/logout`, {
+  await fetch(`${API_URL}/auth/logout`, {
     method: "POST",
     credentials: "same-origin",
   });
 }
 
 export async function getCurrentSession(): Promise<SessionResponse | null> {
-  const res = await fetch(`/api/auth/session`, {
+  const res = await fetch(`${API_URL}/auth/session`, {
     method: "GET",
     credentials: "same-origin",
   });

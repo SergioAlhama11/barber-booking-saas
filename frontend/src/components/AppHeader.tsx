@@ -56,104 +56,105 @@ export default function AppHeader() {
   }, [slug]);
 
   return (
-    <div className="sticky top-0 z-50 border-b border-gray-800/80 bg-black/85 backdrop-blur-xl">
-      <div className="max-w-md mx-auto px-4 py-2.5 space-y-2">
-        <div className="grid grid-cols-[92px_1fr_96px] items-center gap-2">
-          {/* LEFT */}
+    <div className="sticky top-0 z-50 border-b border-white/6 bg-black/80 backdrop-blur-2xl">
+      <div className="max-w-md mx-auto px-4 py-3 space-y-3">
+        <div className="grid grid-cols-[92px_1fr_92px] items-center gap-2">
           {!isHome ? (
             <button
               onClick={() => router.back()}
-              className="justify-self-start inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-900 transition"
+              className="justify-self-start inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-gray-300 transition hover:border-white/12 hover:bg-white/[0.06] hover:text-white"
             >
-              ← Volver
+              <span aria-hidden="true">←</span>
+              <span>Volver</span>
             </button>
           ) : (
             <div />
           )}
 
-          {/* CENTER */}
           <div className="min-w-0 text-center">
-            <p className="truncate text-lg font-semibold tracking-tight text-white">
+            <p className="truncate text-[2rem] font-semibold tracking-tight text-white">
               {displayName}
             </p>
 
-            <p className="text-[11px] text-gray-500">
-              {isMyBookings ? (
-                "Acceso a tus citas"
-              ) : isLogged ? (
-                <span className="text-gray-400">{email}</span>
-              ) : (
-                "Barber booking"
-              )}
+            <p className="mt-0.5 text-[11px] tracking-[0.18em] uppercase text-gray-500">
+              {isMyBookings
+                ? "Gestion de reservas"
+                : isReady && isLogged && email
+                  ? "Acceso activo"
+                  : "Reserva online"}
             </p>
           </div>
 
-          {/* RIGHT */}
-          <div className="flex justify-end items-center gap-2">
-            {slug && !isMyBookings && (
-              <button
-                onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
-                className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-sm transition ${
-                  "text-gray-400 hover:text-white hover:bg-gray-900"
-                }`}
-              >
-                Mis citas
-              </button>
-            )}
-
+          <div className="flex justify-end">
             {isMyBookings && isReady && isLogged ? (
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="inline-flex items-center justify-center rounded-full border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-300 transition hover:bg-red-500/15 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 px-3 text-xs font-medium text-red-200 transition hover:bg-red-500/15 disabled:opacity-60"
               >
-                {loggingOut ? "Saliendo..." : "Cerrar acceso"}
+                {loggingOut ? "Saliendo..." : "Cerrar"}
               </button>
-            ) : null}
-
-            {!isMyBookings && isReady && isLogged && (
+            ) : slug && !isMyBookings ? (
               <button
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="text-xs text-red-400 hover:text-red-300"
+                onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] px-3 text-sm font-medium text-white transition hover:border-white/12 hover:bg-white/[0.06]"
               >
-                {loggingOut ? "Saliendo..." : "Salir"}
+                📅 Citas
               </button>
+            ) : (
+              <div />
             )}
           </div>
         </div>
 
-        {isMyBookings && (
-          <div className="rounded-2xl border border-gray-800 bg-gray-950/70 px-3 py-3">
-            <div className="flex items-start justify-between gap-3">
+        {isMyBookings ? (
+          <div className="rounded-3xl border border-white/8 bg-[#0d1220] px-4 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
+            <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 space-y-1">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">
-                  Acceso temporal
+                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                  Sesion temporal
                 </p>
-                <p className="truncate text-sm text-white">
+                <p className="truncate text-sm font-medium text-white">
                   {isReady && isLogged && email
                     ? email
-                    : "Accede con tu email para gestionar tus citas"}
+                    : "Accede con tu email para recuperar tus citas"}
                 </p>
               </div>
 
               {slug && (
                 <button
                   onClick={() => router.push(`/barbershops/${slug}`)}
-                  className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-gray-200"
+                  className="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-slate-200"
                 >
                   Reservar
                 </button>
               )}
             </div>
 
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-3 text-sm leading-6 text-slate-400">
               {isReady && isLogged
-                ? "Puedes revisar, modificar o cancelar tus reservas desde aqui."
-                : "Te enviaremos un codigo a tu email para recuperar el acceso."}
+                ? "Desde aqui puedes revisar, modificar o cancelar tus reservas con acceso temporal."
+                : "Te enviaremos un codigo de acceso o podras entrar desde el enlace recibido por email."}
             </p>
           </div>
-        )}
+        ) : isReady && isLogged && email ? (
+          <div className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">
+                Sesion activa
+              </p>
+              <p className="truncate text-sm text-gray-200">{email}</p>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="rounded-full px-3 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
+            >
+              {loggingOut ? "Saliendo..." : "Salir"}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

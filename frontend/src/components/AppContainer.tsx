@@ -11,13 +11,11 @@ export default function AppContainer({
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black text-white">
       <AppHeader />
 
-      <div className="w-full px-4 py-6 max-w-md mx-auto space-y-7">
-        <div className="bg-gray-900/60 backdrop-blur border border-gray-800 rounded-3xl p-4 sm:p-5 shadow-lg">
-          {children}
-        </div>
+      <div className="w-full max-w-md mx-auto px-4 py-6 space-y-6">
+        {children}
 
-        <div className="text-center text-xs text-gray-500">
-          💡 Cancelación fácil desde el email
+        <div className="pb-4 text-center text-[11px] text-gray-600">
+          Gestiona tus reservas desde la app o el enlace del email
         </div>
       </div>
     </div>

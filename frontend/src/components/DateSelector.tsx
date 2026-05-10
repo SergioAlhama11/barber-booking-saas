@@ -22,9 +22,16 @@ export default function DateSelector({
 }: Props) {
   return (
     <div className="mt-6 space-y-4 w-full">
-      <h2 className="text-lg font-semibold">Selecciona la fecha</h2>
+      <div className="space-y-1">
+        <h2 className="text-[1.9rem] font-semibold tracking-tight text-white">
+          Selecciona la fecha
+        </h2>
+        <p className="text-sm text-gray-500">
+          Elige un nuevo día para consultar la disponibilidad.
+        </p>
+      </div>
 
-      <div className="bg-gray-900/70 border border-gray-800 text-white rounded-3xl p-4 shadow-lg w-full">
+      <div className="w-full rounded-[30px] border border-white/8 bg-[#121826] p-4 text-white shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
         <DayPicker
           mode="single"
           locale={es}
@@ -42,7 +49,7 @@ export default function DateSelector({
         />
       </div>
 
-      <p className="text-xs text-gray-500">
+      <p className="text-sm text-gray-500">
         {disabled
           ? "Selecciona un barbero para ver disponibilidad"
           : "La disponibilidad se actualiza al cambiar de día"}

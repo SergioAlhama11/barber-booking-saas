@@ -61,7 +61,9 @@ export default function ConfirmationPage() {
     return (
       <div className="min-h-screen bg-black text-white">
         <AppHeader />
-        <div className="p-6 text-center text-gray-400">Cargando reserva...</div>
+        <div className="mx-auto max-w-md px-4 py-8 text-center text-gray-400">
+          Cargando reserva...
+        </div>
       </div>
     );
   }
@@ -71,14 +73,19 @@ export default function ConfirmationPage() {
       <div className="min-h-screen bg-black text-white">
         <AppHeader />
 
-        <div className="p-6 max-w-md mx-auto text-center space-y-4">
-          <p className="text-red-500 text-lg font-semibold">
-            ❌ No se pudo cargar la reserva
-          </p>
+        <div className="max-w-md mx-auto px-4 py-8 text-center space-y-5">
+          <div className="rounded-[32px] border border-red-500/20 bg-red-500/10 px-5 py-6">
+            <p className="text-lg font-semibold text-red-200">
+              No se pudo cargar la reserva
+            </p>
+            <p className="mt-2 text-sm text-red-100/75">
+              Revisa el enlace o vuelve al inicio para reservar de nuevo.
+            </p>
+          </div>
 
           <button
             onClick={() => router.push(`/barbershops/${slug}`)}
-            className="w-full bg-gray-800 py-3 rounded-xl"
+            className="w-full rounded-2xl border border-white/8 bg-white/[0.04] py-3.5 font-medium text-white transition hover:bg-white/[0.07]"
           >
             Volver
           </button>
@@ -95,71 +102,106 @@ export default function ConfirmationPage() {
     <div className="min-h-screen bg-black text-white">
       <AppHeader />
 
-      <div className="w-full max-w-md mx-auto px-4 py-5 space-y-5">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-green-500 leading-tight">
-            ✅ Reserva confirmada
-          </h1>
+      <div className="w-full max-w-md mx-auto px-4 py-6 space-y-6">
+        <div className="rounded-[34px] border border-emerald-500/20 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_60%),linear-gradient(180deg,rgba(17,24,39,0.95),rgba(10,15,25,0.95))] px-5 py-6 shadow-[0_16px_48px_rgba(0,0,0,0.35)]">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-emerald-200">
+              Reserva confirmada
+            </div>
 
-          <p className="text-sm text-gray-400">
-            Todo listo, te esperamos en la barbería.
-          </p>
-        </div>
+            <div className="space-y-2">
+              <h1 className="text-[2.4rem] font-semibold leading-[1.05] tracking-tight text-white">
+                Todo listo para tu próxima cita
+              </h1>
 
-        <div className="bg-gray-900 border border-gray-800 p-5 rounded-3xl text-left space-y-3">
-          <div className="grid grid-cols-[92px_1fr] gap-y-3 text-sm sm:text-base">
-            <span className="text-gray-400">Servicio</span>
-            <span className="font-medium">{appointment.serviceName}</span>
-
-            <span className="text-gray-400">Barbero</span>
-            <span className="font-medium">{appointment.barberName}</span>
-
-            <span className="text-gray-400">Fecha</span>
-            <span className="font-medium">{formatDate(appointment.startTime)}</span>
-
-            <span className="text-gray-400">Hora</span>
-            <span className="font-medium">{formatTime(appointment.startTime)}</span>
-
-            <span className="text-gray-400">Email</span>
-            <span className="font-medium break-all">
-              {appointment.customerEmail}
-            </span>
+              <p className="max-w-sm text-sm leading-6 text-gray-300">
+                Hemos guardado tu reserva y ya puedes añadirla al calendario o
+                gestionarla desde la app cuando quieras.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-sm text-gray-400">Añádelo a tu calendario</p>
+        <section className="rounded-[32px] border border-white/8 bg-[#121826] px-5 py-5 shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">
+                Resumen
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-white">
+                {appointment.serviceName} con {appointment.barberName}
+              </h2>
+            </div>
+            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-right">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-blue-200/80">
+                Hora
+              </p>
+              <p className="text-2xl font-semibold text-white">
+                {formatTime(appointment.startTime)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-white/6 bg-black/20 px-3 py-3">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
+                Fecha
+              </p>
+              <p className="mt-1 text-base font-medium text-white">
+                {formatDate(appointment.startTime)}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/6 bg-black/20 px-3 py-3">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
+                Email
+              </p>
+              <p className="mt-1 truncate text-base font-medium text-white">
+                {appointment.customerEmail}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[30px] border border-white/8 bg-[#0f1522] px-5 py-5 space-y-3">
+          <div className="space-y-1">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">
+              Calendario
+            </p>
+            <h2 className="text-xl font-semibold text-white">
+              Guárdalo donde te venga mejor
+            </h2>
+            <p className="text-sm text-gray-400">
+              Compatible con Google Calendar, Apple Calendar y Outlook.
+            </p>
+          </div>
 
           <a
             href={`/api/barbershops/${slug}/appointments/${id}/calendar`}
-            className="block w-full text-center bg-blue-600 py-3 rounded-2xl font-semibold hover:bg-blue-700 transition"
+            className="block w-full rounded-2xl bg-blue-600 py-3.5 text-center font-semibold text-white transition hover:bg-blue-500"
           >
             Añadir al calendario
           </a>
+        </section>
 
-          <p className="text-xs text-gray-500">
-            Google, Apple y Outlook compatibles
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3">
+        <div className="space-y-3">
           <button
             onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
-            className="w-full bg-blue-600 py-3 rounded-2xl hover:bg-blue-700 transition"
+            className="w-full rounded-2xl bg-white py-3.5 font-semibold text-black transition hover:bg-slate-200"
           >
             Ver mis citas
           </button>
 
           <button
             onClick={() => router.push(`/barbershops/${slug}`)}
-            className="w-full bg-gray-800 py-3 rounded-2xl hover:bg-gray-700 transition"
+            className="w-full rounded-2xl border border-white/8 bg-white/[0.04] py-3.5 font-medium text-white transition hover:bg-white/[0.07]"
           >
             Reservar otra cita
           </button>
         </div>
 
-        <p className="text-xs text-gray-500">
-          Serás redirigido automáticamente en unos segundos...
+        <p className="text-center text-sm text-gray-500">
+          Volverás al inicio automáticamente en unos segundos.
         </p>
       </div>
     </div>

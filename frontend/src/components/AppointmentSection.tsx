@@ -21,10 +21,21 @@ export default function AppointmentSection({
   }
 
   return (
-    <section className="space-y-4.5">
+    <section className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[2rem] leading-none font-bold tracking-tight">{title}</h2>
-        <span className="rounded-full bg-gray-900 px-2 py-1 text-xs text-gray-400 border border-gray-800 min-w-10 text-center">
+        <div className="space-y-1">
+          <h2 className="text-[1.85rem] leading-none font-semibold tracking-tight text-white">
+            {title}
+          </h2>
+          <p className="text-sm text-gray-500">
+            {statusVariant === "upcoming"
+              ? "Gestiona tus proximas reservas"
+              : statusVariant === "cancelled"
+                ? "Reservas que ya no siguen activas"
+                : "Citas anteriores de esta barberia"}
+          </p>
+        </div>
+        <span className="min-w-10 rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-center text-xs font-medium text-gray-300">
           {appointments.length}
         </span>
       </div>
