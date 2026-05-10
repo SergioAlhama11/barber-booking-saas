@@ -157,13 +157,13 @@ export default function ReschedulePage() {
   if (loadFailed && !appointment) {
     return (
       <AppContainer>
-        <div className="space-y-4 text-center">
-          <p className="text-red-400 font-medium">
+        <div className="rounded-[30px] border border-red-500/20 bg-red-500/10 px-5 py-6 text-center space-y-4">
+          <p className="text-lg font-semibold text-red-200">
             No se puede modificar esta reserva
           </p>
           <button
             onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
-            className="bg-blue-600 hover:bg-blue-700 py-3 rounded-2xl transition font-medium"
+            className="w-full rounded-2xl bg-white py-3.5 font-medium text-black transition hover:bg-slate-200"
           >
             Volver a mis citas
           </button>
@@ -175,7 +175,9 @@ export default function ReschedulePage() {
   if (!appointment) {
     return (
       <AppContainer>
-        <p className="text-center text-gray-400 text-sm">Cargando...</p>
+        <div className="rounded-[28px] border border-white/8 bg-[#121826] px-5 py-7 text-center text-sm text-gray-400">
+          Cargando...
+        </div>
       </AppContainer>
     );
   }
@@ -187,14 +189,14 @@ export default function ReschedulePage() {
   if (appointment.cancelledAt) {
     return (
       <AppContainer>
-        <div className="text-center space-y-4">
-          <p className="text-red-500 text-lg font-semibold">
+        <div className="rounded-[30px] border border-red-500/20 bg-red-500/10 px-5 py-6 text-center space-y-4">
+          <p className="text-lg font-semibold text-red-200">
             Esta cita está cancelada
           </p>
 
           <button
             onClick={() => router.push(`/barbershops/${slug}`)}
-            className="bg-blue-600 px-6 py-3 rounded-xl"
+            className="w-full rounded-2xl bg-white py-3.5 font-medium text-black transition hover:bg-slate-200"
           >
             Reservar nueva cita
           </button>
@@ -209,24 +211,30 @@ export default function ReschedulePage() {
 
   return (
     <AppContainer>
-      <h1 className="text-xl font-bold text-center">🔄 Modificar cita</h1>
+      <section className="rounded-[34px] border border-white/8 bg-[linear-gradient(180deg,rgba(18,24,38,0.98),rgba(11,16,26,0.98))] px-5 py-6 text-center shadow-[0_12px_40px_rgba(0,0,0,0.28)]">
+        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-blue-200">
+          Reprogramar
+        </div>
 
-      {magicMessage && (
-        <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-center text-xs text-green-300">
-          {magicMessage}
-        </p>
-      )}
+        <h1 className="mt-4 text-[2.4rem] font-semibold leading-[1] tracking-tight text-white">
+          Modificar cita
+        </h1>
 
-      <div className="text-center text-gray-400 text-sm space-y-1">
-        <p>
+        <p className="mt-3 text-base text-gray-300">
           {appointment.serviceName} — {appointment.barberName}
         </p>
 
-        <p>
+        <p className="mt-1 text-sm text-gray-500">
           {formatDate(appointment.startTime)} ·{" "}
           {formatTime(appointment.startTime)}
         </p>
-      </div>
+      </section>
+
+      {magicMessage && (
+        <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-center text-sm text-green-200">
+          {magicMessage}
+        </p>
+      )}
 
       <DateSelector
         date={date}
@@ -236,7 +244,7 @@ export default function ReschedulePage() {
       />
 
       {loadingSlots && (
-        <p className="text-center text-gray-400 text-sm">
+        <p className="rounded-[28px] border border-white/8 bg-[#121826] px-5 py-5 text-center text-sm text-gray-400">
           Cargando horarios...
         </p>
       )}
@@ -250,28 +258,28 @@ export default function ReschedulePage() {
       )}
 
       {!loadingSlots && slots.length === 0 && (
-        <div className="rounded-2xl border border-red-900/50 bg-red-500/10 px-4 py-4 text-center space-y-2">
-          <p className="text-sm font-medium text-white">
+        <div className="rounded-[28px] border border-red-500/20 bg-red-500/10 px-5 py-5 text-center space-y-2">
+          <p className="text-base font-medium text-white">
             No hay disponibilidad para este día
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-sm text-gray-400">
             Prueba con otra fecha para encontrar un nuevo hueco.
           </p>
         </div>
       )}
 
-      {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+      {error && <p className="text-center text-sm text-red-300">{error}</p>}
 
       <button
         onClick={handleSubmit}
         disabled={loading || !selectedSlot}
         className={`w-full py-3 rounded-2xl font-medium transition ${
           loading || !selectedSlot
-            ? "bg-gray-700 text-gray-400"
-            : "bg-blue-600 hover:bg-blue-700 text-white"
+            ? "bg-gray-800 text-gray-500"
+            : "bg-blue-600 hover:bg-blue-500 text-white"
         }`}
       >
-        {loading ? "Actualizando..." : "Actualizar cita"}
+        {loading ? "Actualizando..." : "Confirmar nuevo horario"}
       </button>
     </AppContainer>
   );

@@ -26,7 +26,7 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
     if (!selectedSlot && recommendedSlot) {
       onSelect(recommendedSlot);
     }
-  }, [recommendedSlot]);
+  }, [onSelect, recommendedSlot, selectedSlot]);
 
   // =========================
   // HAPTIC FEEDBACK
@@ -109,11 +109,18 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
 
   return (
     <div className="mt-6 space-y-5">
-      <h2 className="text-lg font-semibold">Horarios disponibles</h2>
+      <div className="space-y-1">
+        <h2 className="text-[1.9rem] font-semibold tracking-tight text-white">
+          Horarios disponibles
+        </h2>
+        <p className="text-sm text-gray-500">
+          Hemos destacado el primer hueco libre para que te resulte más rápido.
+        </p>
+      </div>
 
       {recommendedSlot && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-700/40 relative">
-          <p className="text-xs text-emerald-300 uppercase tracking-[0.18em] mb-2">
+        <div className="relative rounded-[28px] border border-emerald-500/20 bg-emerald-500/10 p-4">
+          <p className="mb-2 text-xs uppercase tracking-[0.22em] text-emerald-200">
             Recomendado
           </p>
 
@@ -128,8 +135,8 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
               stiffness: 300,
               damping: 20,
             }}
-            className={`
-              w-full py-3 rounded-xl font-semibold transition
+              className={`
+              w-full rounded-2xl py-3.5 font-semibold transition
 
               ${
                 selectedSlot === recommendedSlot
@@ -156,7 +163,7 @@ export default function SlotSelector({ slots, selectedSlot, onSelect }: Props) {
         <div className="text-center">
           <button
             onClick={() => setShowAll((p) => !p)}
-            className="text-blue-400 text-sm hover:text-blue-300 transition"
+            className="rounded-full border border-white/8 px-4 py-2 text-sm text-blue-300 transition hover:bg-white/[0.04] hover:text-blue-200"
           >
             {showAll ? "Ver menos" : "Ver más horarios"}
           </button>
