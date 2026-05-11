@@ -15,15 +15,27 @@ export default function HomeEntryGate({ availableSlugs }: Props) {
   useEffect(() => {
     const savedSlug = localStorage.getItem(LAST_BARBERSHOP_KEY);
 
-    if (!savedSlug) return;
-
-    if (!availableSlugs.includes(savedSlug)) {
-      localStorage.removeItem(LAST_BARBERSHOP_KEY);
+    // NO HAY SLUG GUARDADO
+    if (!savedSlug) {
+      router.replace("/barbershops");
       return;
     }
 
+    // SLUG INVALIDO
+    if (!availableSlugs.includes(savedSlug)) {
+      localStorage.removeItem(LAST_BARBERSHOP_KEY);
+
+      router.replace("/barbershops");
+      return;
+    }
+
+    // SLUG OK
     router.replace(`/barbershops/${savedSlug}`);
   }, [availableSlugs, router]);
 
-  return null;
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center text-sm text-gray-500">
+      Cargando...
+    </div>
+  );
 }

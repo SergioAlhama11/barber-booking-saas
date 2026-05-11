@@ -11,11 +11,10 @@ import {
   formatLocalDate,
 } from "@/services/dateService";
 
-const STORAGE_KEY = "booking_state";
-
 export function useBooking(slug: string) {
   const today = getTodayLocal();
   const router = useRouter();
+  const storageKey = `booking_state_${slug}`;
 
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
@@ -40,7 +39,7 @@ export function useBooking(slug: string) {
   // =========================
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(storageKey);
     if (!saved) return;
 
     try {
@@ -60,7 +59,7 @@ export function useBooking(slug: string) {
 
   useEffect(() => {
     localStorage.setItem(
-      STORAGE_KEY,
+      storageKey,
       JSON.stringify({
         serviceId: selectedService?.id ?? null,
         barberId: selectedBarber?.id ?? null,
@@ -137,77 +136,83 @@ export function useBooking(slug: string) {
   // SMART AVAILABILITY
   // =========================
 
-  const findNextAvailableDate = useCallback(async (fromDate: string) => {
-    if (!selectedBarber || !selectedService) return null;
+  const findNextAvailableDate = useCallback(
+    async (fromDate: string) => {
+      if (!selectedBarber || !selectedService) return null;
 
-    const base = new Date(fromDate);
+      const base = new Date(fromDate);
 
-    for (let i = 1; i <= 14; i++) {
-      const next = new Date(base);
-      next.setDate(next.getDate() + i);
+      for (let i = 1; i <= 14; i++) {
+        const next = new Date(base);
+        next.setDate(next.getDate() + i);
 
-      const formatted = formatLocalDate(next);
+        const formatted = formatLocalDate(next);
 
-      const res = await getAvailability(
-        slug,
-        selectedBarber.id,
-        selectedService.id,
-        formatted,
-      );
+        const res = await getAvailability(
+          slug,
+          selectedBarber.id,
+          selectedService.id,
+          formatted,
+        );
 
-      const slots = res.data?.slots ?? [];
+        const slots = res.data?.slots ?? [];
 
-      if (!res.error && slots.length > 0) {
-        return formatted;
+        if (!res.error && slots.length > 0) {
+          return formatted;
+        }
       }
-    }
 
-    return null;
-  }, [selectedBarber, selectedService, slug]);
+      return null;
+    },
+    [selectedBarber, selectedService, slug],
+  );
 
   // =========================
   // LOAD AVAILABILITY
   // =========================
 
-  const loadAvailability = useCallback(async (customDate?: string) => {
-    if (!selectedBarber || !selectedService) return;
+  const loadAvailability = useCallback(
+    async (customDate?: string) => {
+      if (!selectedBarber || !selectedService) return;
 
-    try {
-      setLoadingSlots(true);
-      setSuggestedDate(null);
+      try {
+        setLoadingSlots(true);
+        setSuggestedDate(null);
 
-      const targetDate = customDate ?? date;
+        const targetDate = customDate ?? date;
 
-      const res = await getAvailability(
-        slug,
-        selectedBarber.id,
-        selectedService.id,
-        targetDate,
-      );
+        const res = await getAvailability(
+          slug,
+          selectedBarber.id,
+          selectedService.id,
+          targetDate,
+        );
 
-      if (res.error || !res.data) {
-        setError(res.message || "Error loading availability");
-        return;
+        if (res.error || !res.data) {
+          setError(res.message || "Error loading availability");
+          return;
+        }
+
+        const slots = res.data.slots ?? [];
+
+        setSlots(slots);
+        setHasSearched(true);
+
+        if (slots.length > 0) {
+          setSelectedSlot((prev) => prev ?? slots[0]); // 🔥 no sobrescribe selección manual
+        } else {
+          const next = await findNextAvailableDate(targetDate);
+          setSuggestedDate(next);
+        }
+      } catch (e) {
+        console.error("LOAD ERROR", e);
+        setError("Error loading availability");
+      } finally {
+        setLoadingSlots(false);
       }
-
-      const slots = res.data.slots ?? [];
-
-      setSlots(slots);
-      setHasSearched(true);
-
-      if (slots.length > 0) {
-        setSelectedSlot((prev) => prev ?? slots[0]); // 🔥 no sobrescribe selección manual
-      } else {
-        const next = await findNextAvailableDate(targetDate);
-        setSuggestedDate(next);
-      }
-    } catch (e) {
-      console.error("LOAD ERROR", e);
-      setError("Error loading availability");
-    } finally {
-      setLoadingSlots(false);
-    }
-  }, [date, findNextAvailableDate, selectedBarber, selectedService, slug]);
+    },
+    [date, findNextAvailableDate, selectedBarber, selectedService, slug],
+  );
 
   // =========================
   // AUTOLOAD

@@ -45,22 +45,32 @@ export default async function Page({
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black text-white">
       <div className="w-full px-4 py-5 space-y-5 max-w-md mx-auto sm:max-w-md">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold leading-tight">💈 {shopName}</h1>
-            <p className="text-xs text-gray-400">
-              {" "}
-              Reserva tu cita en segundos
-            </p>
+        <div className="space-y-6">
+          {/* TOP BAR */}
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/barbershops"
+              className="inline-flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm font-medium text-gray-300 transition hover:bg-gray-800 hover:text-white active:scale-[0.98]"
+            >
+              <span aria-hidden="true">←</span>
+              <span>Barberías</span>
+            </Link>
+
+            <Link
+              href={`/barbershops/${slug}/my-bookings`}
+              className="inline-flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 active:scale-[0.98]"
+            >
+              <span aria-hidden="true">📅</span>
+              <span>Mis citas</span>
+            </Link>
           </div>
 
-          <Link
-            href={`/barbershops/${slug}/my-bookings`}
-            className="inline-flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
-          >
-            <span aria-hidden="true">📅</span>
-            <span>Mis citas</span>
-          </Link>
+          {/* HERO */}
+          <div className="text-center space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">💈 {shopName}</h1>
+
+            <p className="text-sm text-gray-400">Reserva tu cita en segundos</p>
+          </div>
         </div>
 
         <MyBookingsEntryHint slug={slug} />

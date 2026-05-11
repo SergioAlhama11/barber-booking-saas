@@ -57,6 +57,22 @@ export default function Booking({
     services,
   ]);
 
+  useEffect(() => {
+    if (
+      booking.selectedBarber?.id &&
+      !barbers.some((b) => b.id === booking.selectedBarber?.id)
+    ) {
+      booking.selectBarber(null as never);
+    }
+
+    if (
+      booking.selectedService?.id &&
+      !services.some((s) => s.id === booking.selectedService?.id)
+    ) {
+      booking.selectService(null as never);
+    }
+  }, [booking, barbers, services]);
+
   // =========================
   // ANIMATION VARIANTS
   // =========================
@@ -83,7 +99,7 @@ export default function Booking({
               <p className="text-xs text-gray-400">
                 {booking.selectedService.durationMinutes} min
                 {booking.selectedService.price &&
-                  ` · ${booking.selectedService.price}€`}
+                  ` · ${booking.selectedService.price} €`}
               </p>
 
               <p className="text-gray-500 text-xs mt-1">
@@ -130,7 +146,12 @@ export default function Booking({
       {/* STEP 2 - BARBER */}
       <AnimatePresence>
         {booking.selectedService && (
-          <motion.div initial="hidden" animate="visible" exit="hidden" variants={fadeUp}>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={fadeUp}
+          >
             <BarberSelector
               barbers={barbers}
               selectedBarber={booking.selectedBarber}
@@ -146,7 +167,12 @@ export default function Booking({
       {/* STEP 3 - DATE */}
       <AnimatePresence>
         {booking.selectedBarber && (
-          <motion.div initial="hidden" animate="visible" exit="hidden" variants={fadeUp}>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={fadeUp}
+          >
             <DateSelector
               date={booking.date}
               minDate={booking.today}
@@ -166,7 +192,12 @@ export default function Booking({
       {/* STEP 4 - SLOTS */}
       <AnimatePresence>
         {booking.hasSearched && (
-          <motion.div initial="hidden" animate="visible" exit="hidden" variants={fadeUp}>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={fadeUp}
+          >
             <SlotSelector
               slots={booking.slots}
               selectedSlot={booking.selectedSlot}
@@ -202,7 +233,12 @@ export default function Booking({
       {/* STEP 5 - FORM */}
       <AnimatePresence>
         {booking.selectedSlot && (
-          <motion.div initial="hidden" animate="visible" exit="hidden" variants={fadeUp}>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={fadeUp}
+          >
             <BookingForm
               selectedSlot={booking.selectedSlot}
               customerName={booking.customerName}
