@@ -6,7 +6,6 @@ import com.sergio.domain.appointment.Appointment;
 import com.sergio.infrastructure.config.AppConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
@@ -139,7 +138,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private void sendEmail(String to, String subject, String html, String ics) {
-        if (!appConfig.isProd()) {
+        if (!appConfig.isEmailEnabled()) {
             logDevEmail(to, html, subject);
             return;
         }

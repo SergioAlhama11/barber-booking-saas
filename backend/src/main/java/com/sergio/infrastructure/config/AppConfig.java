@@ -9,8 +9,8 @@ public class AppConfig {
     @ConfigProperty(name = "app.frontend.url")
     String frontendUrl;
 
-    @ConfigProperty(name = "app.env", defaultValue = "dev")
-    String env;
+    @ConfigProperty(name = "app.email.enabled", defaultValue = "false")
+    boolean emailEnabled;
 
     @ConfigProperty(name = "app.cookies.secure", defaultValue = "false")
     boolean secureCookies;
@@ -19,8 +19,8 @@ public class AppConfig {
         return frontendUrl;
     }
 
-    public boolean isProd() {
-        return "prod".equalsIgnoreCase(env);
+    public boolean isEmailEnabled() {
+        return emailEnabled;
     }
 
     public boolean isSecureCookies() {
