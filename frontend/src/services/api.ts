@@ -5,7 +5,10 @@ import type { Barber, Barbershop, Service } from "@/types";
 // CONFIG
 // =========================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_URL =
+  typeof window === "undefined"
+    ? process.env.API_URL_SERVER!
+    : process.env.NEXT_PUBLIC_API_URL!;
 
 // =========================
 // TYPES
@@ -239,6 +242,7 @@ export async function requestOtp(
   const res = await fetch(`${API_URL}/auth/request-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ email, slug }),
   });
 
@@ -262,6 +266,7 @@ export async function verifyOtp(
   const res = await fetch(`${API_URL}/auth/verify-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ email, code }),
   });
 
@@ -280,6 +285,7 @@ export async function exchangeMagicToken(
   const res = await fetch(`${API_URL}/auth/exchange-magic`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ token }),
   });
 
