@@ -15,10 +15,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Reservas Barbería",
-  description: "Reserva tu cita en segundos",
-  manifest: "/manifest.json",
+export const metadata = {
+  title: "Trimly",
+  description: "Reserva tu cita",
+  appleWebApp: {
+    title: "Trimly",
+  },
 };
 
 export const viewport = {
