@@ -3,6 +3,7 @@ package com.sergio.application.notification;
 import com.sergio.application.calendar.CalendarService;
 import com.sergio.application.notification.template.EmailTemplateLoader;
 import com.sergio.domain.appointment.Appointment;
+import com.sergio.infrastructure.config.AppConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -30,8 +31,8 @@ public class EmailServiceImpl implements EmailService {
     @Inject
     CalendarService calendarService;
 
-    @ConfigProperty(name = "app.env", defaultValue = "dev")
-    String env;
+    @Inject
+    AppConfig appConfig;
 
     // =========================
     // PUBLIC API
@@ -138,7 +139,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private void sendEmail(String to, String subject, String html, String ics) {
-        if (isDev()) {
+        if (!appConfig.isProd()) {
             logDevEmail(to, html, subject);
             return;
         }
@@ -156,10 +157,6 @@ public class EmailServiceImpl implements EmailService {
         }
 
         LOG.infof("Email sent to %s", to);
-    }
-
-    private boolean isDev() {
-        return "dev".equalsIgnoreCase(env);
     }
 
     private void logDevEmail(String to, String html, String subject) {

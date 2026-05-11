@@ -19,8 +19,8 @@ public class AuthCookieService {
         Cookie cookie = Cookie.cookie(SESSION_COOKIE_NAME, token)
                 .setPath("/")
                 .setHttpOnly(true)
-                .setSecure(appConfig.isProd())
-                .setSameSite(CookieSameSite.NONE)
+                .setSecure(appConfig.isSecureCookies())
+                .setSameSite(appConfig.isSecureCookies() ? CookieSameSite.NONE : CookieSameSite.LAX)
                 .setMaxAge(maxAgeSeconds);
 
         response.addCookie(cookie);
@@ -30,8 +30,8 @@ public class AuthCookieService {
         Cookie cookie = Cookie.cookie(SESSION_COOKIE_NAME, "")
                 .setPath("/")
                 .setHttpOnly(true)
-                .setSecure(appConfig.isProd())
-                .setSameSite(CookieSameSite.NONE)
+                .setSecure(appConfig.isSecureCookies())
+                .setSameSite(appConfig.isSecureCookies() ? CookieSameSite.NONE : CookieSameSite.LAX)
                 .setMaxAge(0);
 
         response.addCookie(cookie);
