@@ -4,6 +4,7 @@ import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import InstallPWA from "@/components/InstallPWA";
 import { AuthProvider } from "@/components/AuthProvider";
+import PageTransition from "@/components/PageTransition";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,7 +39,8 @@ export default function RootLayout({
         <AuthProvider>
           <ServiceWorkerRegister />
           <InstallPWA />
-          {children}
+
+          <PageTransition>{children}</PageTransition>
         </AuthProvider>
       </body>
     </html>
