@@ -5,51 +5,155 @@ import com.sergio.domain.appointment.exception.InvalidAppointmentException;
 import com.sergio.domain.barbershop.exception.DuplicateBarbershopException;
 import com.sergio.domain.service.exception.DuplicateServiceException;
 import com.sergio.domain.service.exception.InvalidServiceException;
-import io.quarkus.hibernate.validator.runtime.jaxrs.ResteasyReactiveViolationException;
-import jakarta.validation.ConstraintViolationException;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
+import org.jboss.logging.Logger;
 
 @Provider
 public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
+    private static final Logger LOG =
+            Logger.getLogger(GlobalExceptionMapper.class);
+
     @Override
     public Response toResponse(Throwable exception) {
 
+        // =========================
+        // BUSINESS ERRORS
+        // =========================
+
         if (exception instanceof DuplicateBarbershopException ex) {
-            return build(Response.Status.CONFLICT, ErrorCode.BARBERSHOP_ALREADY_EXISTS, ex.getMessage());
+
+            LOG.warnf(
+                    "duplicate_barbershop_error message=%s",
+                    ex.getMessage()
+            );
+
+            return build(
+                    Response.Status.CONFLICT,
+                    ErrorCode.BARBERSHOP_ALREADY_EXISTS,
+                    ex.getMessage()
+            );
         }
 
         if (exception instanceof AppointmentConflictException ex) {
-            return build(Response.Status.CONFLICT, ErrorCode.APPOINTMENT_CONFLICT, ex.getMessage());
+
+            LOG.warnf(
+                    "appointment_conflict_error message=%s",
+                    ex.getMessage()
+            );
+
+            return build(
+                    Response.Status.CONFLICT,
+                    ErrorCode.APPOINTMENT_CONFLICT,
+                    ex.getMessage()
+            );
         }
 
         if (exception instanceof InvalidAppointmentException ex) {
-            return build(Response.Status.BAD_REQUEST, ErrorCode.INVALID_APPOINTMENT, ex.getMessage());
+
+            LOG.warnf(
+                    "invalid_appointment_error message=%s",
+                    ex.getMessage()
+            );
+
+            return build(
+                    Response.Status.BAD_REQUEST,
+                    ErrorCode.INVALID_APPOINTMENT,
+                    ex.getMessage()
+            );
         }
 
         if (exception instanceof DuplicateServiceException ex) {
-            return build(Response.Status.CONFLICT, ErrorCode.SERVICE_ALREADY_EXISTS, ex.getMessage());
+
+            LOG.warnf(
+                    "duplicate_service_error message=%s",
+                    ex.getMessage()
+            );
+
+            return build(
+                    Response.Status.CONFLICT,
+                    ErrorCode.SERVICE_ALREADY_EXISTS,
+                    ex.getMessage()
+            );
         }
 
         if (exception instanceof InvalidServiceException ex) {
-            return build(Response.Status.BAD_REQUEST, ErrorCode.INVALID_SERVICE, ex.getMessage());
+
+            LOG.warnf(
+                    "invalid_service_error message=%s",
+                    ex.getMessage()
+            );
+
+            return build(
+                    Response.Status.BAD_REQUEST,
+                    ErrorCode.INVALID_SERVICE,
+                    ex.getMessage()
+            );
         }
 
+        // =========================
+        // HTTP ERRORS
+        // =========================
+
         if (exception instanceof NotFoundException ex) {
-            return build(Response.Status.NOT_FOUND, ErrorCode.NOT_FOUND, ex.getMessage());
+
+            LOG.warnf(
+                    "resource_not_found message=%s",
+                    ex.getMessage()
+            );
+
+            return build(
+                    Response.Status.NOT_FOUND,
+                    ErrorCode.NOT_FOUND,
+                    ex.getMessage()
+            );
+        }
+
+        if (exception instanceof ForbiddenException ex) {
+
+            LOG.warnf(
+                    "access_denied message=%s",
+                    ex.getMessage()
+            );
+
+            return build(
+                    Response.Status.FORBIDDEN,
+                    ErrorCode.ACCESS_DENIED,
+                    ex.getMessage()
+            );
         }
 
         if (exception instanceof BadRequestException ex) {
-            return build(Response.Status.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, ex.getMessage());
+
+            LOG.warnf(
+                    "bad_request_error message=%s",
+                    ex.getMessage()
+            );
+
+            return build(
+                    Response.Status.BAD_REQUEST,
+                    ErrorCode.VALIDATION_ERROR,
+                    ex.getMessage()
+            );
         }
+
+        // =========================
+        // ENUM VALIDATION
+        // =========================
 
         if (exception instanceof IllegalArgumentException ex &&
                 ex.getMessage() != null &&
                 ex.getMessage().contains("No enum constant")) {
+
+            LOG.warnf(
+                    "invalid_enum_value message=%s",
+                    ex.getMessage()
+            );
 
             return build(
                     Response.Status.BAD_REQUEST,
@@ -58,15 +162,25 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             );
         }
 
-        // 🔴 IMPORTANTE: log
-        exception.printStackTrace();
+        // =========================
+        // UNEXPECTED ERROR
+        // =========================
 
-        return build(Response.Status.INTERNAL_SERVER_ERROR,
+        LOG.error("unexpected_error", exception);
+
+        return build(
+                Response.Status.INTERNAL_SERVER_ERROR,
                 ErrorCode.INTERNAL_ERROR,
-                "Unexpected error");
+                "Unexpected error"
+        );
     }
 
-    private Response build(Response.Status status, ErrorCode error, String message) {
+    private Response build(
+            Response.Status status,
+            ErrorCode error,
+            String message
+    ) {
+
         return Response.status(status)
                 .entity(new ErrorResponse(error, message))
                 .build();

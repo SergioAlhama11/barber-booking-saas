@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-storage:/prometheus
+
+    networks:
+      - barber-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+
+    ports:
+      - "3001:3000"
+
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=CAMBIA_ESTA_PASSWORD
+
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+    networks:
+      - barber-network
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres-exporter
+    restart: unless-stopped
+
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@barber-postgres:5432/barber_booking?sslmode=disable"
+
+    ports:
+      - "9187:9187"
+
+    networks:
+      - barber-network
+
+volumes:
+  grafana-storage:
+  prometheus-storage:
+
+networks:
+  barber-network:
+    external: true

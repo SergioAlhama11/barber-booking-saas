@@ -1,6 +1,7 @@
 package com.sergio.api.qr;
 
 import com.sergio.application.qr.QrTrackingService;
+import com.sergio.infrastructure.config.AppConfig;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -15,13 +16,15 @@ public class QrTrackingResource {
     @Inject
     QrTrackingService trackingService;
 
+    @Inject
+    AppConfig appConfig;
+
     @GET
     public Response track(@PathParam("slug") String slug) {
 
         trackingService.incrementScan(slug);
 
-        String redirectUrl = "http://192.168.18.212:3000/barbershops/"
-                + slug + "?src=qr";
+        String redirectUrl = appConfig.getFrontendUrl() + "/barbershops/" + slug + "?src=qr";
 
         return Response.status(303)
                 .header("Location", redirectUrl)

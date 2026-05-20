@@ -9,6 +9,9 @@ public class AppConfig {
     @ConfigProperty(name = "app.frontend.url")
     String frontendUrl;
 
+    @ConfigProperty(name = "app.backend.url")
+    String backendUrl;
+
     @ConfigProperty(name = "app.email.enabled", defaultValue = "false")
     boolean emailEnabled;
 
@@ -17,6 +20,10 @@ public class AppConfig {
 
     public String getFrontendUrl() {
         return frontendUrl;
+    }
+
+    public String getBackendUrl() {
+        return backendUrl;
     }
 
     public boolean isEmailEnabled() {
