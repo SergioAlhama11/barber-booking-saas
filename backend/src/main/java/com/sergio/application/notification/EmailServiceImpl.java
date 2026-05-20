@@ -4,6 +4,9 @@ import com.sergio.application.calendar.CalendarService;
 import com.sergio.application.notification.template.EmailTemplateLoader;
 import com.sergio.domain.appointment.Appointment;
 import com.sergio.infrastructure.config.AppConfig;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -16,7 +19,6 @@ import java.util.Map;
 @ApplicationScoped
 public class EmailServiceImpl implements EmailService {
 
-    private static final Logger LOG = Logger.getLogger(EmailServiceImpl.class);
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy - HH:mm").withZone(ZONE);
 
@@ -25,6 +27,12 @@ public class EmailServiceImpl implements EmailService {
     private static final String CANCELLED_EMAIL_SUBJECT = "Cancelación de cita - Barbería";
     private static final String OTP_EMAIL_SUBJECT = "Código de acceso";
 
+    private static final Logger LOG = Logger.getLogger(EmailServiceImpl.class);
+
+    private Counter emailsSentCounter;
+    private Counter emailFailuresCounter;
+    private Counter otpEmailsCounter;
+
     @Inject BrevoEmailService brevo;
 
     @Inject
@@ -32,6 +40,16 @@ public class EmailServiceImpl implements EmailService {
 
     @Inject
     AppConfig appConfig;
+
+    @Inject
+    MeterRegistry meterRegistry;
+
+    @PostConstruct
+    void initMetrics() {
+        emailsSentCounter = meterRegistry.counter("emails_sent");
+        emailFailuresCounter = meterRegistry.counter("email_failures");
+        otpEmailsCounter = meterRegistry.counter("otp_emails_sent");
+    }
 
     // =========================
     // PUBLIC API
@@ -108,6 +126,7 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendOtp(String to, String code, String magicUrl) {
+        otpEmailsCounter.increment();
         send(
                 to,
                 OTP_EMAIL_SUBJECT,
@@ -129,6 +148,7 @@ public class EmailServiceImpl implements EmailService {
             String html = render(EmailTemplateLoader.load(templateName), values);
             sendEmail(to, subject, html, icsContent);
         } catch (Exception e) {
+            emailFailuresCounter.increment();
             LOG.errorf(e, "Failed to send email [%s] to %s", templateName, to);
         }
     }
@@ -155,7 +175,13 @@ public class EmailServiceImpl implements EmailService {
             brevo.send(to, subject, html);
         }
 
-        LOG.infof("Email sent to %s", to);
+        LOG.infof(
+                "email_sent type=%s to=%s",
+                subject,
+                to
+        );
+
+        emailsSentCounter.increment();
     }
 
     private void logDevEmail(String to, String html, String subject) {

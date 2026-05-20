@@ -1,5 +1,4 @@
 services:
-
   postgres:
     image: postgres:16
     container_name: barber-postgres
@@ -15,20 +14,35 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+    networks:
+      - barber-network
+
   mailhog:
     image: mailhog/mailhog
     platform: linux/amd64
     container_name: barber-mailhog
 
     ports:
-      - "1025:1025"   # SMTP
-      - "8025:8025"   # UI Web
+      - "1025:1025"
+      - "8025:8025"
+
+    networks:
+      - barber-network
 
   redis:
     image: redis:7
+
     ports:
       - "6379:6379"
+
     command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+    networks:
+      - barber-network
 
 volumes:
   postgres_data:
+
+networks:
+  barber-network:
+    external: true

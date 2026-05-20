@@ -1,6 +1,7 @@
 package com.sergio.api.qr;
 
 import com.sergio.application.qr.QrPdfService;
+import com.sergio.infrastructure.config.AppConfig;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -14,11 +15,14 @@ public class QrResource {
     @Inject
     QrPdfService qrPdfService;
 
+    @Inject
+    AppConfig appConfig;
+
     @GET
     @Produces("application/pdf")
     public Response getQr(@PathParam("slug") String slug) {
 
-        String url = "http://192.168.18.212:8080/barbershops/" + slug + "/qr";
+        String url = appConfig.getBackendUrl() + "/barbershops/" + slug + "/qr";
 
         byte[] pdf = qrPdfService.generatePdf(slug, url);
 

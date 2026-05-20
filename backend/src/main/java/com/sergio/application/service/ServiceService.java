@@ -12,6 +12,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
+import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -20,6 +21,8 @@ import java.util.List;
 
 @ApplicationScoped
 public class ServiceService {
+
+    private static final Logger LOG = Logger.getLogger(ServiceService.class);
 
     @Inject
     ServiceRepository serviceRepository;
@@ -31,6 +34,11 @@ public class ServiceService {
     ServicePersistenceMapper servicePersistenceMapper;
 
     public List<Service> findAll(String slug) {
+        LOG.infof(
+                "services_fetch_requested slug=%s",
+                slug
+        );
+
         Long barbershopId = getBarbershopIdOrThrow(slug);
 
         return serviceRepository.findByBarbershopId(barbershopId)
@@ -55,6 +63,13 @@ public class ServiceService {
 
     @Transactional
     public Service create(String slug, Service service) {
+        LOG.infof(
+                "service_create_requested slug=%s name=%s duration=%d",
+                slug,
+                service.getName(),
+                service.getDurationMinutes()
+        );
+
         Long barbershopId = getBarbershopIdOrThrow(slug);
 
         if (service.getName() == null || service.getName().isBlank()) {
@@ -78,6 +93,11 @@ public class ServiceService {
         service.setPrice(service.getPrice().setScale(2, RoundingMode.HALF_UP));
 
         if (serviceRepository.existsByNameAndBarbershopId(service.getName(), barbershopId)) {
+            LOG.warnf(
+                    "service_duplicate slug=%s name=%s",
+                    slug,
+                    service.getName()
+            );
             throw new DuplicateServiceException("Service already exists");
         }
 
@@ -86,6 +106,13 @@ public class ServiceService {
         entity.setCreatedAt(Instant.now());
 
         serviceRepository.persist(entity);
+
+        LOG.infof(
+                "service_created slug=%s serviceId=%d name=%s",
+                slug,
+                entity.getId(),
+                entity.getName()
+        );
 
         return servicePersistenceMapper.toDomain(entity);
     }

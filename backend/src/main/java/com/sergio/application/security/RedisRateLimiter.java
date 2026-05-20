@@ -1,12 +1,16 @@
 package com.sergio.application.security;
 
 import com.sergio.domain.appointment.exception.InvalidAppointmentException;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.keys.KeyCommands;
 import io.quarkus.redis.datasource.sortedset.ScoreRange;
 import io.quarkus.redis.datasource.sortedset.SortedSetCommands;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -18,10 +22,24 @@ public class RedisRateLimiter {
     private final SortedSetCommands<String, String> zset;
     private final KeyCommands<String> keys;
 
+    private static final Logger LOG = Logger.getLogger(RedisRateLimiter.class);
+
+    private Counter rateLimitExceededCounter;
+    private Counter rateLimitAcceptedCounter;
+
+    @Inject
+    MeterRegistry meterRegistry;
+
     @Inject
     public RedisRateLimiter(RedisDataSource redis) {
         this.zset = redis.sortedSet(String.class);
         this.keys = redis.key();
+    }
+
+    @PostConstruct
+    void initMetrics() {
+        rateLimitExceededCounter = meterRegistry.counter("rate_limit_exceeded");
+        rateLimitAcceptedCounter = meterRegistry.counter("rate_limit_accepted");
     }
 
     // =========================
@@ -39,12 +57,28 @@ public class RedisRateLimiter {
         long count = zset.zcard(key);
 
         if (count >= max) {
+            rateLimitExceededCounter.increment();
+            LOG.warnf(
+                    "rate_limit_exceeded key=%s limit=%d windowSeconds=%d",
+                    key,
+                    max,
+                    window.getSeconds()
+            );
             throw new InvalidAppointmentException(message);
         }
 
         String value = now + "-" + UUID.randomUUID();
 
         zset.zadd(key, now, value);
+
+        rateLimitAcceptedCounter.increment();
+
+        LOG.infof(
+                "rate_limit_incremented key=%s count=%d limit=%d",
+                key,
+                count + 1,
+                max
+        );
 
         keys.expire(key, window.getSeconds());
     }
@@ -54,9 +88,6 @@ public class RedisRateLimiter {
     // =========================
 
     public void checkCreateLimit(String ip, String email) {
-
-        System.out.println("🔥 Redis limiter ejecutado");
-
         checkLimit(
                 "rl:create:ip:" + ip,
                 2,
@@ -77,7 +108,6 @@ public class RedisRateLimiter {
     // =========================
 
     public void checkResendLimit(String ip, String email) {
-
         checkLimit(
                 "rl:resend:ip:" + ip,
                 5,

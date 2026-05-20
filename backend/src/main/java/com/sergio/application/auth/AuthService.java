@@ -4,9 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sergio.application.notification.EmailService;
 import com.sergio.application.security.RedisRateLimiter;
 import com.sergio.infrastructure.config.AppConfig;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ForbiddenException;
+import org.jboss.logging.Logger;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -34,6 +39,19 @@ public class AuthService {
 
     private static final SecureRandom random = new SecureRandom();
 
+    private static final Logger LOG = Logger.getLogger(AuthService.class);
+
+    private Counter otpRequestsCounter;
+    private Counter otpVerifiedCounter;
+    private Counter otpInvalidCounter;
+    private Counter otpExpiredCounter;
+    private Counter sessionsCreatedCounter;
+    private Counter sessionInvalidCounter;
+    private Counter magicSessionsCreatedCounter;
+
+    private Timer otpRequestTimer;
+    private Timer otpVerifyTimer;
+
     @Inject
     RedisService redisService;
 
@@ -49,36 +67,69 @@ public class AuthService {
     @Inject
     ObjectMapper objectMapper;
 
+    @Inject
+    MeterRegistry meterRegistry;
+
+    @PostConstruct
+    void initMetrics() {
+        otpRequestsCounter = meterRegistry.counter("otp_requests");
+        otpVerifiedCounter = meterRegistry.counter("otp_verified");
+        otpInvalidCounter = meterRegistry.counter("otp_invalid");
+        otpExpiredCounter = meterRegistry.counter("otp_expired");
+        sessionsCreatedCounter = meterRegistry.counter("sessions_created");
+        sessionInvalidCounter = meterRegistry.counter("session_invalid");
+        magicSessionsCreatedCounter = meterRegistry.counter("magic_sessions_created");
+
+        otpRequestTimer = meterRegistry.timer("otp_request_duration");
+        otpVerifyTimer = meterRegistry.timer("otp_verify_duration");
+    }
+
     // =========================
     // OTP REQUEST
     // =========================
 
     public void requestOtp(String email, String ip, String slug) {
-        email = normalizeEmail(email);
+        final String normalizedEmail = normalizeEmail(email);
 
-        redisRateLimiter.checkOtpLimit(email);
-        redisRateLimiter.checkOtpLimit(ip);
+        otpRequestTimer.record(() -> {
+            otpRequestsCounter.increment();
 
-        // limpiar estado previo
-        redisService.delete(OTP_PREFIX + email);
-        redisService.delete(OTP_ATTEMPTS_PREFIX + email);
+            LOG.infof(
+                    "otp_requested email=%s ip=%s slug=%s",
+                    normalizedEmail,
+                    ip,
+                    slug
+            );
 
-        String code = generateOtp();
+            redisRateLimiter.checkOtpLimit(normalizedEmail);
+            redisRateLimiter.checkOtpLimit(ip);
 
-        // guardar OTP hasheado
-        redisService.set(
-                OTP_PREFIX + email,
-                hash(code),
-                Duration.ofSeconds(OTP_TTL_SECONDS)
-        );
+            // limpiar estado previo
+            redisService.delete(OTP_PREFIX + normalizedEmail);
+            redisService.delete(OTP_ATTEMPTS_PREFIX + normalizedEmail);
 
-        String magicToken = createMagicSession(email, null);
+            String code = generateOtp();
 
-        String magicUrl = appConfig.getFrontendUrl()
-                + "/barbershops/" + slug
-                + "/my-bookings?token=" + magicToken;
+            // guardar OTP hasheado
+            redisService.set(
+                    OTP_PREFIX + normalizedEmail,
+                    hash(code),
+                    Duration.ofSeconds(OTP_TTL_SECONDS)
+            );
 
-        emailService.sendOtp(email, code, magicUrl);
+            String magicToken = createMagicSession(normalizedEmail, null);
+
+            String magicUrl = appConfig.getFrontendUrl()
+                    + "/barbershops/" + slug
+                    + "/my-bookings?token=" + magicToken;
+
+            LOG.infof(
+                    "otp_sent email=%s",
+                    normalizedEmail
+            );
+
+            emailService.sendOtp(normalizedEmail, code, magicUrl);
+        });
     }
 
     // =========================
@@ -86,36 +137,66 @@ public class AuthService {
     // =========================
 
     public String verifyOtp(String email, String code) {
-        email = normalizeEmail(email);
+        final String normalizedEmail = normalizeEmail(email);
 
-        String otpKey = OTP_PREFIX + email;
-        String storedCode = redisService.get(otpKey);
+        return otpVerifyTimer.record(() -> {
+            LOG.infof(
+                    "otp_verification_requested email=%s",
+                    normalizedEmail
+            );
 
-        // control de intentos
-        String attemptsKey = OTP_ATTEMPTS_PREFIX + email;
-        int attempts = redisService.increment(
-                attemptsKey,
-                Duration.ofSeconds(OTP_TTL_SECONDS)
-        );
+            String otpKey = OTP_PREFIX + normalizedEmail;
+            String storedCode = redisService.get(otpKey);
 
-        if (attempts > MAX_ATTEMPTS) {
+            // control de intentos
+            String attemptsKey = OTP_ATTEMPTS_PREFIX + normalizedEmail;
+            int attempts = redisService.increment(
+                    attemptsKey,
+                    Duration.ofSeconds(OTP_TTL_SECONDS)
+            );
+
+            if (attempts > MAX_ATTEMPTS) {
+                redisService.delete(otpKey);
+                LOG.warnf(
+                        "otp_attempts_exceeded email=%s attempts=%d",
+                        normalizedEmail,
+                        attempts
+                );
+                throw new ForbiddenException("Too many attempts");
+            }
+
+            if (storedCode == null) {
+                otpExpiredCounter.increment();
+                LOG.warnf(
+                        "otp_expired email=%s",
+                        normalizedEmail
+                );
+                throw new ForbiddenException("OTP_EXPIRED");
+            }
+
+            if (!storedCode.equals(hash(code))) {
+                otpInvalidCounter.increment();
+                LOG.warnf(
+                        "otp_invalid email=%s attempts=%d",
+                        normalizedEmail,
+                        attempts
+                );
+                throw new ForbiddenException("OTP_INVALID");
+            }
+
+            // limpiar OTP
             redisService.delete(otpKey);
-            throw new ForbiddenException("Too many attempts");
-        }
+            redisService.delete(attemptsKey);
 
-        if (storedCode == null) {
-            throw new ForbiddenException("OTP_EXPIRED");
-        }
+            LOG.infof(
+                    "otp_verified email=%s",
+                    normalizedEmail
+            );
 
-        if (!storedCode.equals(hash(code))) {
-            throw new ForbiddenException("OTP_INVALID");
-        }
+            otpVerifiedCounter.increment();
 
-        // limpiar OTP
-        redisService.delete(otpKey);
-        redisService.delete(attemptsKey);
-
-        return createSession(email);
+            return createSession(normalizedEmail);
+        });
     }
 
     // =========================
@@ -131,11 +212,20 @@ public class AuthService {
 
         String email = redisService.get(normalKey);
         if (email != null) {
+
+            LOG.infof(
+                    "session_restored email=%s",
+                    email
+            );
+
             refreshSession(normalKey, email);
             rememberSessionToken(email, token);
             refreshMagicSource(token);
             return email;
         }
+
+        LOG.warn("session_invalid");
+        sessionInvalidCounter.increment();
 
         throw new ForbiddenException("Session expired or invalid");
     }
@@ -158,6 +248,14 @@ public class AuthService {
                 email,
                 Duration.ofSeconds(SESSION_TTL_SECONDS)
         );
+
+        sessionsCreatedCounter.increment();
+
+        LOG.infof(
+                "session_created email=%s",
+                email
+        );
+
         rememberSessionToken(email, token);
 
         if (sourceMagicToken != null && !sourceMagicToken.isBlank()) {
@@ -200,8 +298,15 @@ public class AuthService {
         MagicSession magicSession = getMagicSession(token);
 
         if (magicSession == null) {
+            LOG.warn("magic_session_invalid");
             throw new ForbiddenException("Magic session expired or invalid");
         }
+
+        LOG.infof(
+                "magic_session_restored email=%s appointmentId=%s",
+                magicSession.email(),
+                magicSession.appointmentId()
+        );
 
         return magicSession;
     }
@@ -233,6 +338,15 @@ public class AuthService {
                     objectMapper.writeValueAsString(session),
                     Duration.ofSeconds(MAGIC_SESSION_TTL_SECONDS)
             );
+
+            magicSessionsCreatedCounter.increment();
+
+            LOG.infof(
+                    "magic_session_created email=%s appointmentId=%s",
+                    email,
+                    appointmentId
+            );
+
             rememberMagicToken(email, token);
         } catch (Exception e) {
             throw new RuntimeException("Error serializing magic session", e);
@@ -321,6 +435,11 @@ public class AuthService {
         }
 
         redisService.delete(SESSION_INDEX_PREFIX + email);
+
+        LOG.infof(
+                "session_invalidated email=%s",
+                email
+        );
     }
 
     private List<String> readMagicTokens(String email) throws Exception {
