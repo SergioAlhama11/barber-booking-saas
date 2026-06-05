@@ -4,8 +4,6 @@ import com.sergio.application.admin.auth.PasswordService;
 import com.sergio.domain.admin.AdminRole;
 import com.sergio.infrastructure.persistence.adminUser.AdminUserEntity;
 import com.sergio.infrastructure.persistence.adminUser.AdminUserRepository;
-import com.sergio.infrastructure.persistence.barbershop.BarbershopEntity;
-import com.sergio.infrastructure.persistence.barbershop.BarbershopRepository;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
