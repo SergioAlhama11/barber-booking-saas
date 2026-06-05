@@ -11,6 +11,7 @@ export default function BookingForm({
   onSubmit,
   loading,
   error,
+  compact = false,
 }: {
   selectedSlot: string;
   customerName: string;
@@ -20,19 +21,24 @@ export default function BookingForm({
   onSubmit: () => void;
   loading: boolean;
   error?: string | null;
+  compact?: boolean;
 }) {
   return (
-    <div className="mt-6 space-y-4 rounded-3xl border border-gray-800 bg-gray-950/60 p-5">
-      <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
-          Hora seleccionada
-        </p>
-        <p className="font-semibold text-lg text-white">
-          {formatTimeSlot(selectedSlot)}
-        </p>
-      </div>
+    <div
+      className={`${compact ? "" : "mt-6 "}space-y-4 rounded-3xl border border-gray-800 bg-gray-950/60 p-5 xl:p-6`}
+    >
+      {!compact && (
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
+            Hora seleccionada
+          </p>
+          <p className="font-semibold text-lg text-white">
+            {formatTimeSlot(selectedSlot)}
+          </p>
+        </div>
+      )}
 
-      <h2 className="text-xl font-semibold">Introduce tus datos</h2>
+      <h2 className="text-xl font-semibold xl:text-2xl">Introduce tus datos</h2>
 
       <input
         type="text"

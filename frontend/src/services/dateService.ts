@@ -115,8 +115,8 @@ export function formatSmartDate(date: string) {
 
   const diff = (dCopy.getTime() - todayCopy.getTime()) / (1000 * 60 * 60 * 24);
 
-  if (diff === 1) return "mañana";
-  if (diff === 0) return "hoy";
+  if (diff === 1) return "Mañana";
+  if (diff === 0) return "Hoy";
 
   return d.toLocaleDateString("es-ES", {
     day: "numeric",

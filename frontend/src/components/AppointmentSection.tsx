@@ -1,59 +1,85 @@
 "use client";
 
 import AppointmentCard from "./AppointmentCard";
+
 import type { Appointment } from "@/services/api";
 
 type SectionProps = {
   title: string;
   appointments: Appointment[];
-  onClick?: (appointment: Appointment) => void;
   statusVariant?: "upcoming" | "past" | "cancelled";
+  onCancel?: (appointment: Appointment) => void;
 };
 
 export default function AppointmentSection({
   title,
   appointments,
-  onClick,
   statusVariant = "upcoming",
+  onCancel,
 }: SectionProps) {
-  if (!appointments || appointments.length === 0) {
+  if (!appointments?.length) {
     return null;
   }
 
+  const description =
+    statusVariant === "upcoming"
+      ? "Gestiona tus próximas reservas"
+      : statusVariant === "cancelled"
+        ? "Reservas que ya no siguen activas"
+        : "Historial de citas anteriores";
+
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-[1.85rem] leading-none font-semibold tracking-tight text-white">
+    <section className="space-y-5">
+      {/* HEADER */}
+
+      <div className="flex flex-col gap-4 rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(17,24,39,0.92),rgba(11,16,28,0.88))] p-5 backdrop-blur-xl sm:flex-row sm:items-end sm:justify-between xl:p-6">
+        <div>
+          <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+            {appointments.length} reservas
+          </div>
+
+          <h2 className="mt-4 text-[2rem] font-bold tracking-tight text-white xl:text-[2.8rem]">
             {title}
           </h2>
-          <p className="text-sm text-gray-500">
-            {statusVariant === "upcoming"
-              ? "Gestiona tus proximas reservas"
-              : statusVariant === "cancelled"
-                ? "Reservas que ya no siguen activas"
-                : "Citas anteriores de esta barberia"}
+
+          <p className="mt-2 text-sm text-slate-400 xl:text-base">
+            {description}
           </p>
         </div>
-        <span className="min-w-10 rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-center text-xs font-medium text-gray-300">
-          {appointments.length}
-        </span>
+
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+          <div
+            className={`h-2.5 w-2.5 rounded-full ${
+              statusVariant === "cancelled"
+                ? "bg-red-400"
+                : statusVariant === "past"
+                  ? "bg-white"
+                  : "bg-emerald-400"
+            }`}
+          />
+
+          <span className="text-sm text-slate-300">
+            {statusVariant === "upcoming"
+              ? "Reservas activas"
+              : statusVariant === "cancelled"
+                ? "Reservas canceladas"
+                : "Citas completadas"}
+          </span>
+        </div>
       </div>
 
-      {appointments.map((a) => {
-        const isCancelled = !!a.cancelledAt;
-        const isClickable =
-          statusVariant === "upcoming" && !isCancelled && !!onClick;
+      {/* CARDS */}
 
-        return (
+      <div className="grid gap-4">
+        {appointments.map((appointment) => (
           <AppointmentCard
-            key={a.id}
-            appointment={a}
-            onClick={isClickable ? () => onClick(a) : undefined}
+            key={appointment.id}
+            appointment={appointment}
             statusVariant={statusVariant}
+            onCancel={onCancel}
           />
-        );
-      })}
+        ))}
+      </div>
     </section>
   );
 }

@@ -18,7 +18,8 @@ export default function AuthModal({
 }: AuthModalProps) {
   const { slug } = useParams() as { slug: string };
   const auth = useAuth(slug);
-  const { email, error, loading, reset, sendOtp, setEmail, step, verify } = auth;
+  const { email, error, loading, reset, sendOtp, setEmail, step, verify } =
+    auth;
   const [timer, setTimer] = useState(30);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -88,8 +89,8 @@ export default function AuthModal({
 
         {/* SUBTITLE */}
         <p className="text-sm text-gray-400">
-          No necesitas cuenta. Te enviaremos un codigo a tu email para acceder
-          a tus citas.
+          No necesitas cuenta. Te enviaremos un codigo a tu email para acceder a
+          tus citas.
         </p>
 
         {/* EMAIL STEP */}
@@ -117,9 +118,9 @@ export default function AuthModal({
         {/* OTP STEP */}
         {step === "otp" && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-400">
-              Codigo enviado a <span className="text-white">{email}</span>
-            </p>
+            <p className="text-sm text-gray-400">Código enviado a</p>
+
+            <p className="text-white font-medium break-all">{email}</p>
 
             <OtpInput
               length={6}
@@ -130,24 +131,25 @@ export default function AuthModal({
             />
 
             {/* RESEND */}
-            {timer > 0 ? (
-              <p className="text-xs text-gray-500">Reenviar en {timer}s</p>
-            ) : (
-              <button
-                onClick={handleSendOtp}
-                className="text-sm text-blue-400 hover:text-blue-300"
-              >
-                Reenviar código
-              </button>
-            )}
+            <div className="flex items-center justify-center gap-4">
+              {timer > 0 ? (
+                <p className="text-xs text-gray-500">Reenviar en {timer}s</p>
+              ) : (
+                <button
+                  onClick={handleSendOtp}
+                  className="text-sm text-blue-400 hover:text-blue-300"
+                >
+                  Reenviar código
+                </button>
+              )}
 
-            {/* CHANGE EMAIL */}
-            <button
-              onClick={reset}
-              className="text-xs text-gray-500 hover:text-gray-300"
-            >
-              Cambiar email
-            </button>
+              <button
+                onClick={reset}
+                className="text-sm text-gray-500 hover:text-gray-300"
+              >
+                Cambiar email
+              </button>
+            </div>
           </div>
         )}
 
@@ -157,7 +159,11 @@ export default function AuthModal({
         )}
 
         {/* ERROR */}
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        )}
 
         {/* CANCEL */}
         <button

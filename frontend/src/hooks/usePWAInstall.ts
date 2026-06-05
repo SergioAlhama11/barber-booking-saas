@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "pwa_install_dismissed";
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
 export function usePWAInstall() {
-  const [prompt, setPrompt] = useState<any>(null);
+  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
 
   const isIOS =
@@ -13,29 +18,27 @@ export function usePWAInstall() {
   const isStandalone =
     typeof window !== "undefined" &&
     (window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone);
+      "standalone" in window.navigator);
 
   useEffect(() => {
     const dismissed = localStorage.getItem(STORAGE_KEY);
     if (dismissed) return;
 
-    const handler = (e: any) => {
+    const handler = (e: Event) => {
       e.preventDefault();
-      setPrompt(e);
+      setPrompt(e as BeforeInstallPromptEvent);
 
-      // ⏱️ delay estilo Uber
       setTimeout(() => setVisible(true), 4000);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    // iOS fallback (no event)
     if (isIOS && !isStandalone) {
       setTimeout(() => setVisible(true), 4000);
     }
 
     return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [isIOS, isStandalone]);
 
   const install = async () => {
     if (!prompt) return;

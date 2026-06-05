@@ -1,5 +1,6 @@
 import { getQrStats } from "@/services/dashboard";
 import StatsGrid from "@/components/dashboard/StatsGrid";
+import ErrorState from "@/components/ErrorState";
 
 export default async function DashboardPage({
   params,
@@ -14,8 +15,11 @@ export default async function DashboardPage({
     stats = await getQrStats(slug);
   } catch {
     return (
-      <div className="p-6 text-center text-red-400">
-        Error cargando métricas
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <ErrorState
+          title="Error cargando métricas"
+          description="No se pudieron obtener las estadísticas del dashboard."
+        />
       </div>
     );
   }
