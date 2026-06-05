@@ -20,5 +20,8 @@
     <include file="db/changelog/011-add-source-to-appointments.xml"/>
     <include file="db/changelog/012-add-calendar-version-to-appointments.xml"/>
     <include file="db/changelog/013-add-price-to-services.xml"/>
+    <include file="db/changelog/014-create-admin-users.xml"/>
+    <include file="db/changelog/015-admin-owner-support.xml"/>
+    <include file="db/changelog/016-add-barber-id-to-admin-users.xml"/>
 
 </databaseChangeLog>

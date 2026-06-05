@@ -59,8 +59,7 @@ public class EmailServiceImpl implements EmailService {
     public void sendAppointmentConfirmation(
             Appointment a,
             String manageUrl,
-            String cancelUrl,
-            String loginUrl
+            String cancelUrl
     ) {
 
         String ics = calendarService.generateIcs(a);
@@ -75,8 +74,7 @@ public class EmailServiceImpl implements EmailService {
                         "barber", a.getBarberName(),
                         "date", format(a.getStartTime()),
                         "manageUrl", manageUrl,
-                        "cancelUrl", cancelUrl,
-                        "loginUrl", loginUrl
+                        "cancelUrl", cancelUrl
                 ),
                 ics
         );

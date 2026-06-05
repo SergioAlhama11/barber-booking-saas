@@ -35,9 +35,4 @@ public class BarbershopResource {
     public BarbershopResponse findBySlug(@PathParam("slug") String slug) {
         return barbershopMapper.toDto(barbershopService.findBySlug(slug));
     }
-
-    @POST
-    public BarbershopResponse create(@Valid CreateBarbershopRequest request) {
-        return barbershopMapper.toDto(barbershopService.create(barbershopMapper.toDomain(request)));
-    }
 }

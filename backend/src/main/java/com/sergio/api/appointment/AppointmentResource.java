@@ -95,10 +95,6 @@ public class AppointmentResource {
             var magic = authService.getMagicSession(queryToken);
 
             if (magic != null) {
-                if (magic.appointmentId() == null || !magic.appointmentId().equals(id)) {
-                    throw new ForbiddenException("Invalid access");
-                }
-
                 Appointment a = appointmentService.findById(slug, id);
 
                 if (a == null) {

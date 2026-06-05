@@ -1,5 +1,7 @@
 package com.sergio.infrastructure.persistence.appointment;
 
+import com.sergio.api.admin.appointment.dto.AdminAppointmentFilterRequest;
+import com.sergio.domain.appointment.AppointmentStatusFilter;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -24,6 +26,36 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             barbershopId = ?1
             and id = ?2
         """, barbershopId, id).firstResultOptional();
+    }
+
+    public List<AppointmentProjection> findDetailedByBarbershopId(Long barbershopId, int page, int size) {
+
+        return getEntityManager().createQuery("""
+        SELECT new com.sergio.infrastructure.persistence.appointment.AppointmentProjection(
+            a.id,
+            a.barbershopId,
+            a.barberId,
+            a.serviceId,
+            b.name,
+            s.name,
+            a.customerName,
+            a.customerEmail,
+            a.startTime,
+            a.endTime,
+            a.cancelledAt,
+            a.source,
+            a.calendarVersion
+        )
+        FROM AppointmentEntity a
+        JOIN BarberEntity b ON b.id = a.barberId
+        JOIN ServiceEntity s ON s.id = a.serviceId
+        WHERE a.barbershopId = :barbershopId
+        ORDER BY a.startTime DESC
+    """, AppointmentProjection.class)
+                .setParameter("barbershopId", barbershopId)
+                .setFirstResult(page * size)
+                .setMaxResults(size)
+                .getResultList();
     }
 
     public List<AppointmentProjection> findDetailedByBarbershopIdAndEmail(
@@ -90,6 +122,118 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
                 .getResultList();
 
         return result.stream().findFirst();
+    }
+
+    public List<AppointmentProjection> findDetailedByFilters(
+            Long barbershopId,
+            AdminAppointmentFilterRequest filter
+    ) {
+
+        StringBuilder jpql = new StringBuilder("""
+        SELECT new com.sergio.infrastructure.persistence.appointment.AppointmentProjection(
+            a.id,
+            a.barbershopId,
+            a.barberId,
+            a.serviceId,
+            b.name,
+            s.name,
+            a.customerName,
+            a.customerEmail,
+            a.startTime,
+            a.endTime,
+            a.cancelledAt,
+            a.source,
+            a.calendarVersion
+        )
+        FROM AppointmentEntity a
+        JOIN BarberEntity b ON b.id = a.barberId
+        JOIN ServiceEntity s ON s.id = a.serviceId
+        WHERE a.barbershopId = :barbershopId
+    """);
+
+        if (filter.from != null) {
+            jpql.append(" AND a.startTime >= :from");
+        }
+
+        if (filter.to != null) {
+            jpql.append(" AND a.startTime <= :to");
+        }
+
+        if (filter.barberId != null) {
+            jpql.append(" AND a.barberId = :barberId");
+        }
+
+        if (filter.status != null) {
+
+            switch (filter.status) {
+
+                case ACTIVE ->
+                        jpql.append("""
+                    AND a.cancelledAt IS NULL
+                    AND a.endTime >= :now
+                """);
+
+                case COMPLETED ->
+                        jpql.append("""
+                    AND a.cancelledAt IS NULL
+                    AND a.endTime < :now
+                """);
+
+                case CANCELLED ->
+                        jpql.append("""
+                    AND a.cancelledAt IS NOT NULL
+                """);
+
+                case ALL -> {
+                }
+            }
+        }
+
+        if (filter.search != null && !filter.search.isBlank()) {
+
+            jpql.append("""
+            AND (
+                LOWER(a.customerName) LIKE :search
+                OR LOWER(a.customerEmail) LIKE :search
+            )
+        """);
+        }
+
+        jpql.append(" ORDER BY a.startTime DESC");
+
+        var query = getEntityManager()
+                .createQuery(jpql.toString(), AppointmentProjection.class)
+                .setParameter("barbershopId", barbershopId);
+
+        if (filter.status == AppointmentStatusFilter.ACTIVE
+                || filter.status == AppointmentStatusFilter.COMPLETED) {
+
+            query.setParameter("now", Instant.now());
+        }
+
+        if (filter.from != null) {
+            query.setParameter("from", filter.from);
+        }
+
+        if (filter.to != null) {
+            query.setParameter("to", filter.to);
+        }
+
+        if (filter.barberId != null) {
+            query.setParameter("barberId", filter.barberId);
+        }
+
+        if (filter.search != null && !filter.search.isBlank()) {
+            query.setParameter(
+                    "search",
+                    "%" + filter.search.toLowerCase() + "%"
+            );
+        }
+
+        return query
+                .setFirstResult(filter.page * filter.size)
+                .setMaxResults(filter.size)
+                .getResultList();
     }
 
     // ANTIFRAUDE

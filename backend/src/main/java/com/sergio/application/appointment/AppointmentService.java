@@ -153,7 +153,7 @@ public class AppointmentService {
 
             trackQrConversionIfNeeded(slug, appointment);
 
-            fireCreatedEvent(entity, slug, service);
+            fireCreatedEvent(entity, slug);
 
             LOG.infof(
                     "appointment_created slug=%s appointmentId=%d barberId=%d serviceId=%d email=%s start=%s",
@@ -243,9 +243,7 @@ public class AppointmentService {
 
             appointmentsCancelledCounter.increment();
 
-            Service service = serviceService.findById(slug, entity.getServiceId());
-
-            fireCancelledEvent(entity, slug, service);
+            fireCancelledEvent(entity, slug);
 
             LOG.infof(
                     "appointment_cancelled slug=%s appointmentId=%d email=%s source=user",
@@ -278,9 +276,7 @@ public class AppointmentService {
                     .map(BarbershopEntity::getSlug)
                     .orElseThrow(() -> new NotFoundException("Barbershop not found"));
 
-            Service service = serviceService.findById(slug, entity.getServiceId());
-
-            fireCancelledEvent(entity, slug, service);
+            fireCancelledEvent(entity, slug);
 
             LOG.infof(
                     "appointment_cancelled slug=%s appointmentId=%d email=%s source=token",
@@ -312,9 +308,7 @@ public class AppointmentService {
             entity.setCancelTokenExpiresAt(calculateCancelExpiry(entity.getStartTime(), now));
             entity.setLastResendAt(now);
 
-            Service service = serviceService.findById(slug, entity.getServiceId());
-
-            fireCreatedEvent(entity, slug, service);
+            fireCreatedEvent(entity, slug);
 
             cancelLinkResentCounter.increment();
             LOG.infof(
@@ -432,12 +426,12 @@ public class AppointmentService {
         return entity;
     }
 
-    private void fireCreatedEvent(AppointmentEntity entity, String slug, Service service) {
+    private void fireCreatedEvent(AppointmentEntity entity, String slug) {
         Appointment a = reload(entity);
         createdEvent.fire(new AppointmentCreatedEvent(a, entity.getCancelToken(), slug));
     }
 
-    private void fireCancelledEvent(AppointmentEntity entity, String slug, Service service) {
+    private void fireCancelledEvent(AppointmentEntity entity, String slug) {
         Appointment a = reload(entity);
         cancelledEvent.fire(new AppointmentCancelledEvent(a, slug));
     }

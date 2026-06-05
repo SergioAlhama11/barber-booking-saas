@@ -43,20 +43,4 @@ public class ServiceResource {
 
         return mapper.toDto(serviceService.findById(slug, id));
     }
-
-    @POST
-    public Response create(
-            @PathParam("slug") @NotBlank String slug,
-            @Valid CreateServiceRequest request) {
-
-        Service created = serviceService.create(slug, mapper.toDomain(request));
-
-        URI location = URI.create(String.format(
-                "/barbershops/%s/services/%d",
-                slug,
-                created.getId()
-        ));
-
-        return Response.created(location).entity(mapper.toDto(created)).build();
-    }
 }

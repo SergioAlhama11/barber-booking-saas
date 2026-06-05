@@ -117,7 +117,7 @@ public class AuthService {
                     Duration.ofSeconds(OTP_TTL_SECONDS)
             );
 
-            String magicToken = createMagicSession(normalizedEmail, null);
+            String magicToken = createMagicSession(normalizedEmail);
 
             String magicUrl = appConfig.getFrontendUrl()
                     + "/barbershops/" + slug
@@ -303,9 +303,8 @@ public class AuthService {
         }
 
         LOG.infof(
-                "magic_session_restored email=%s appointmentId=%s",
-                magicSession.email(),
-                magicSession.appointmentId()
+                "magic_session_restored email=%s",
+                magicSession.email()
         );
 
         return magicSession;
@@ -325,12 +324,12 @@ public class AuthService {
         }
     }
 
-    public String createMagicSession(String email, Long appointmentId) {
+    public String createMagicSession(String email) {
         email = normalizeEmail(email);
 
         String token = generateSecureToken();
 
-        MagicSession session = new MagicSession(email, appointmentId);
+        MagicSession session = new MagicSession(email);
 
         try {
             redisService.set(
@@ -342,9 +341,8 @@ public class AuthService {
             magicSessionsCreatedCounter.increment();
 
             LOG.infof(
-                    "magic_session_created email=%s appointmentId=%s",
-                    email,
-                    appointmentId
+                    "magic_session_created email=%s",
+                    email
             );
 
             rememberMagicToken(email, token);
