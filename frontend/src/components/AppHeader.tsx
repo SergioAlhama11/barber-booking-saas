@@ -13,11 +13,16 @@ export default function AppHeader() {
   const isHome = pathname === `/barbershops/${slug}`;
   const isMyBookings = pathname.includes("my-bookings");
 
-  const [name, setName] = useState<string>(() =>
-    typeof window === "undefined"
-      ? ""
-      : localStorage.getItem("barbershop_name") || "",
-  );
+  const storageKey = slug ? `barbershop_name_${slug}` : "barbershop_name";
+
+  const [name, setName] = useState<string>(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return localStorage.getItem(storageKey) || "";
+  });
+
   const [loggingOut, setLoggingOut] = useState(false);
 
   // 🔥 sesión
@@ -25,15 +30,24 @@ export default function AppHeader() {
 
   useEffect(() => {
     if (!slug) return;
-    if (name) return;
+
+    const storageKey = `barbershop_name_${slug}`;
+
+    const cached = localStorage.getItem(storageKey);
+
+    if (cached) {
+      setName(cached);
+      return;
+    }
 
     getBarbershop(slug).then((res) => {
       if (!res.error && res.data) {
         setName(res.data.name);
-        localStorage.setItem("barbershop_name", res.data.name);
+
+        localStorage.setItem(storageKey, res.data.name);
       }
     });
-  }, [slug, name]);
+  }, [slug]);
 
   const displayName = name || (slug ? slug.replace(/-/g, " ") : "Barber");
 
@@ -56,106 +70,67 @@ export default function AppHeader() {
   }, [slug]);
 
   return (
-    <div className="sticky top-0 z-50 border-b border-white/6 bg-black/80 backdrop-blur-2xl">
-      <div className="max-w-md mx-auto px-4 py-3 space-y-3">
-        <div className="grid grid-cols-[92px_1fr_92px] items-center gap-2">
-          {!isHome ? (
-            <button
-              onClick={() => router.back()}
-              className="justify-self-start inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-gray-300 transition hover:border-white/12 hover:bg-white/[0.06] hover:text-white"
-            >
-              <span aria-hidden="true">←</span>
-              <span>Volver</span>
-            </button>
-          ) : (
-            <div />
-          )}
+    <header className="sticky top-0 z-50 border-b border-white/6 bg-black/80 backdrop-blur-2xl">
+      <div className="w-full px-4 py-3 sm:px-6 xl:px-10 2xl:px-14">
+        <div className="space-y-3">
+          {/* TOP BAR */}
 
-          <div className="min-w-0 text-center">
-            <p className="truncate text-[2rem] font-semibold tracking-tight text-white">
-              {displayName}
-            </p>
+          <div className="grid grid-cols-[88px_minmax(0,1fr)_88px] items-center gap-2 sm:grid-cols-[110px_1fr_110px] xl:grid-cols-[140px_1fr_140px]">
+            {/* LEFT */}
 
-            <p className="mt-0.5 text-[11px] tracking-[0.18em] uppercase text-gray-500">
-              {isMyBookings
-                ? "Gestion de reservas"
-                : isReady && isLogged && email
-                  ? "Acceso activo"
-                  : "Reserva online"}
-            </p>
-          </div>
+            <div className="min-w-[90px]">
+              {!isHome ? (
+                <button
+                  onClick={() => router.back()}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-4 py-2 text-sm text-slate-300 transition hover:border-white/12 hover:bg-white/[0.06] hover:text-white"
+                >
+                  <span>←</span>
+                  <span>Volver</span>
+                </button>
+              ) : null}
+            </div>
 
-          <div className="flex justify-end">
-            {isMyBookings && isReady && isLogged ? (
-              <button
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 px-3 text-xs font-medium text-red-200 transition hover:bg-red-500/15 disabled:opacity-60"
-              >
-                {loggingOut ? "Saliendo..." : "Cerrar"}
-              </button>
-            ) : slug && !isMyBookings ? (
-              <button
-                onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
-                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] px-3 text-sm font-medium text-white transition hover:border-white/12 hover:bg-white/[0.06]"
-              >
-                📅 Citas
-              </button>
-            ) : (
-              <div />
-            )}
+            {/* CENTER */}
+
+            <div className="min-w-0 text-center">
+              <p className="mx-auto w-full overflow-hidden text-ellipsis whitespace-nowrap text-center text-[1.55rem] font-semibold tracking-tight text-white sm:text-[1.9rem] xl:text-[2.4rem]">
+                {displayName}
+              </p>
+
+              <p className="mt-1 hidden text-[11px] uppercase tracking-[0.22em] text-slate-500 sm:block">
+                {isMyBookings
+                  ? "Gestion de reservas"
+                  : isReady && isLogged && email
+                    ? "Acceso activo"
+                    : "Reserva online"}
+              </p>
+            </div>
+
+            {/* RIGHT */}
+
+            <div className="flex min-w-[90px] justify-end">
+              {isMyBookings && isReady && isLogged ? (
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 px-4 text-sm font-medium text-red-200 transition hover:bg-red-500/15 disabled:opacity-60"
+                >
+                  {loggingOut ? "Saliendo..." : "Cerrar"}
+                </button>
+              ) : slug && !isMyBookings ? (
+                <button
+                  onClick={() =>
+                    router.push(`/barbershops/${slug}/my-bookings`)
+                  }
+                  className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] px-4 text-sm font-medium text-white transition hover:border-white/12 hover:bg-white/[0.06]"
+                >
+                  📅 Citas
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
-
-        {isMyBookings ? (
-          <div className="rounded-3xl border border-white/8 bg-[#0d1220] px-4 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 space-y-1">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
-                  Sesion temporal
-                </p>
-                <p className="truncate text-sm font-medium text-white">
-                  {isReady && isLogged && email
-                    ? email
-                    : "Accede con tu email para recuperar tus citas"}
-                </p>
-              </div>
-
-              {slug && (
-                <button
-                  onClick={() => router.push(`/barbershops/${slug}`)}
-                  className="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-slate-200"
-                >
-                  Reservar
-                </button>
-              )}
-            </div>
-
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              {isReady && isLogged
-                ? "Desde aqui puedes revisar, modificar o cancelar tus reservas con acceso temporal."
-                : "Te enviaremos un codigo de acceso o podras entrar desde el enlace recibido por email."}
-            </p>
-          </div>
-        ) : isReady && isLogged && email ? (
-          <div className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
-            <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">
-                Sesion activa
-              </p>
-              <p className="truncate text-sm text-gray-200">{email}</p>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="rounded-full px-3 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
-            >
-              {loggingOut ? "Saliendo..." : "Salir"}
-            </button>
-          </div>
-        ) : null}
       </div>
-    </div>
+    </header>
   );
 }
