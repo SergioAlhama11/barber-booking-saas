@@ -11,6 +11,7 @@ type Props = {
   slug: string;
   date: string;
   onSelect: (barber: Barber) => void;
+  compact?: boolean;
 };
 
 export default function BarberSelector({
@@ -20,6 +21,7 @@ export default function BarberSelector({
   slug,
   date,
   onSelect,
+  compact = false,
 }: Props) {
   const [availability, setAvailability] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
@@ -87,10 +89,12 @@ export default function BarberSelector({
   }
 
   return (
-    <div className="space-y-4 mt-6">
-      <h2 className="text-lg font-semibold">¿Con quién quieres reservar?</h2>
+    <div className={compact ? "space-y-3" : "mt-5 space-y-3"}>
+      <h2 className="text-lg font-semibold lg:text-2xl">
+        ¿Con quién quieres reservar?
+      </h2>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2">
         {barbers.map((barber) => {
           const isSelected = selectedBarber?.id === barber.id;
           const count = availability[barber.id];
@@ -100,10 +104,10 @@ export default function BarberSelector({
               key={barber.id}
               onClick={() => onSelect(barber)}
               className={`
-                w-full p-4 rounded-2xl flex items-center gap-3 transition-all border
+                flex w-full items-center gap-3 rounded-2xl border p-4 transition-all
                 ${
                   isSelected
-                    ? "bg-blue-600/20 border-blue-500 ring-2 ring-blue-500 scale-[1.02]"
+                    ? "border-blue-500 bg-blue-600/15 shadow-[0_0_0_1px_rgba(59,130,246,0.4)]"
                     : "bg-gray-900 border-gray-700 hover:bg-gray-800"
                 }
               `}

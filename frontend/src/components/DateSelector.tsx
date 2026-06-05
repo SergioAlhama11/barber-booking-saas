@@ -11,6 +11,7 @@ type Props = {
   onChange: (date: string) => void;
   onCheck: (date: string) => void;
   disabled?: boolean;
+  compact?: boolean;
 };
 
 export default function DateSelector({
@@ -19,11 +20,12 @@ export default function DateSelector({
   onChange,
   onCheck,
   disabled = false,
+  compact = false,
 }: Props) {
   return (
-    <div className="mt-6 space-y-4 w-full">
+    <div className={compact ? "w-full space-y-3" : "mt-5 w-full space-y-3 lg:space-y-4"}>
       <div className="space-y-1">
-        <h2 className="text-[1.9rem] font-semibold tracking-tight text-white">
+        <h2 className="text-[1.9rem] font-semibold tracking-tight text-white lg:text-[2.1rem]">
           Selecciona la fecha
         </h2>
         <p className="text-sm text-gray-500">
@@ -31,7 +33,7 @@ export default function DateSelector({
         </p>
       </div>
 
-      <div className="w-full rounded-[30px] border border-white/8 bg-[#121826] p-4 text-white shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
+      <div className={`w-full rounded-[30px] border border-white/8 bg-[#121826] p-4 text-white shadow-[0_10px_40px_rgba(0,0,0,0.25)] ${compact ? "" : "lg:max-w-[720px]"} lg:p-5`}>
         <DayPicker
           mode="single"
           locale={es}

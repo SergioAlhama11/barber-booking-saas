@@ -55,7 +55,7 @@ export function useBooking(slug: string) {
     } catch {
       console.warn("Error parsing booking state");
     }
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     localStorage.setItem(
@@ -65,7 +65,7 @@ export function useBooking(slug: string) {
         barberId: selectedBarber?.id ?? null,
       }),
     );
-  }, [selectedService, selectedBarber]);
+  }, [selectedBarber, selectedService, storageKey]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

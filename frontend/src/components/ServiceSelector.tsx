@@ -1,6 +1,7 @@
 "use client";
 
 import { Service } from "@/types";
+import { useState } from "react";
 
 type Props = {
   services: Service[];
@@ -13,24 +14,28 @@ export default function ServiceSelector({
   selectedService,
   onSelect,
 }: Props) {
-  return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold">¿Qué quieres hacerte?</h2>
+  const [expanded, setExpanded] = useState(false);
 
-      <div className="space-y-3">
-        {services.map((service) => {
+  const visibleServices = expanded ? services : services.slice(0, 4);
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold lg:text-2xl">
+        ¿Qué quieres hacerte?
+      </h2>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {visibleServices.map((service) => {
           const isSelected = selectedService?.id === service.id;
 
           return (
             <button
               key={service.id}
               onClick={() => onSelect(service)}
-              className={`
-                w-full p-4 rounded-2xl text-left transition-all border
-
+              className={`w-full rounded-2xl border p-4 text-left transition-all
                 ${
                   isSelected
-                    ? "bg-blue-600/20 border-blue-500 ring-2 ring-blue-500 scale-[1.02]"
+                    ? "border-blue-500 bg-blue-600/15 shadow-[0_0_0_1px_rgba(59,130,246,0.4)]"
                     : "bg-gray-900 border-gray-700 hover:bg-gray-800"
                 }
               `}
@@ -49,6 +54,19 @@ export default function ServiceSelector({
           );
         })}
       </div>
+
+      {services.length > 4 && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={() => setExpanded((prev) => !prev)}
+            className="text-sm font-medium text-blue-400 transition hover:text-blue-300"
+          >
+            {expanded
+              ? "Mostrar menos"
+              : `Ver ${services.length - 4} servicios más`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
