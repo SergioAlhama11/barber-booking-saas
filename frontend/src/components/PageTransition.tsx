@@ -14,6 +14,7 @@ export default function PageTransition({
     <AnimatePresence mode="wait">
       <motion.div
         key={pathname}
+        className="min-h-full"
         initial={{
           opacity: 0,
           y: 8,
