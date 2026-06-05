@@ -89,8 +89,7 @@ public class AuthResource {
 
         return Response.ok(
                 new ExchangeMagicResponse(
-                        magicSession.email(),
-                        magicSession.appointmentId()
+                        magicSession.email()
                 )
         ).build();
     }

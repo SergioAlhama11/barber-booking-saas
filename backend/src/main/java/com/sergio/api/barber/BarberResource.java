@@ -44,23 +44,4 @@ public class BarberResource {
 
         return barberMapper.toDto(barberService.findById(slug, id));
     }
-
-    @POST
-    public Response create(
-            @PathParam("slug") @NotBlank String slug,
-            @Valid CreateBarberRequest request) {
-
-        Barber created = barberService.create(slug, barberMapper.toDomain(request));
-
-        URI location = URI.create(String.format(
-                "/barbershops/%s/barbers/%d",
-                slug,
-                created.getId()
-        ));
-
-        return Response
-                .created(location)
-                .entity(barberMapper.toDto(created))
-                .build();
-    }
 }
