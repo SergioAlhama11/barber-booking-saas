@@ -1,6 +1,10 @@
 import { useCallback, useState } from "react";
 import { requestOtp, verifyOtp } from "@/services/api";
-import { getAuthEmail, setAuthEmail, setAuthSession } from "@/services/authSession";
+import {
+  getAuthEmail,
+  setAuthEmail,
+  setAuthSession,
+} from "@/services/authSession";
 
 export function useAuth(slug: string) {
   const [step, setStep] = useState<"email" | "otp">("email");
@@ -23,22 +27,40 @@ export function useAuth(slug: string) {
     }
   }, [email, slug]);
 
-  const verify = useCallback(async (code: string): Promise<boolean> => {
-    setLoading(true);
-    setError("");
+  const verify = useCallback(
+    async (code: string): Promise<boolean> => {
+      setLoading(true);
+      setError("");
 
-    try {
-      await verifyOtp(email, code);
-      setAuthSession({ email });
+      try {
+        await verifyOtp(email, code);
+        setAuthSession({ email });
 
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Código incorrecto");
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [email]);
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Código incorrecto";
+
+        switch (message) {
+          case "OTP_INVALID":
+            setError("El código introducido no es válido.");
+            break;
+
+          case "OTP_EXPIRED":
+            setError("El código ha caducado. Solicita uno nuevo.");
+            break;
+
+          default:
+            setError(message);
+        }
+
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [email],
+  );
 
   const reset = useCallback(() => {
     setStep("email");

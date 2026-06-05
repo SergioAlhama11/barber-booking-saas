@@ -18,6 +18,7 @@ import {
 } from "@/services/dateService";
 import AppContainer from "@/components/AppContainer";
 import { useMagicAccess } from "@/hooks/useMagicAccess";
+import ErrorState from "@/components/ErrorState";
 
 export default function ReschedulePage() {
   const router = useRouter();
@@ -82,37 +83,51 @@ export default function ReschedulePage() {
   // LOAD SLOTS
   // =========================
 
-  const loadSlots = useCallback(async (targetDate?: string) => {
-    if (!appointment) return;
+  const loadSlots = useCallback(
+    async (targetDate?: string) => {
+      if (!appointment) return;
 
-    try {
-      setLoadingSlots(true);
-      setError(null);
+      try {
+        setLoadingSlots(true);
+        setError(null);
 
-      const finalDate = targetDate ?? date;
+        const finalDate = targetDate ?? date;
 
-      const res = await getAvailability(
-        slug,
-        appointment.barberId,
-        appointment.serviceId,
-        finalDate,
-      );
+        const res = await getAvailability(
+          slug,
+          appointment.barberId,
+          appointment.serviceId,
+          finalDate,
+        );
 
-      if (res.error || !res.data) {
-        setError(res.message ?? "Error cargando disponibilidad");
-        return;
+        if (res.error || !res.data) {
+          setError(res.message ?? "Error cargando disponibilidad");
+          return;
+        }
+
+        const slots = res.data.slots ?? [];
+
+        setSlots(slots);
+
+        setSelectedSlot((prev) => {
+          if (slots.length === 0) {
+            return null;
+          }
+
+          if (prev && slots.includes(prev)) {
+            return prev;
+          }
+
+          return slots[0];
+        });
+      } catch {
+        setError("Error cargando disponibilidad");
+      } finally {
+        setLoadingSlots(false);
       }
-
-      const slots = res.data.slots ?? [];
-
-      setSlots(slots);
-      setSelectedSlot((prev) => prev ?? slots[0] ?? null);
-    } catch {
-      setError("Error cargando disponibilidad");
-    } finally {
-      setLoadingSlots(false);
-    }
-  }, [appointment, date, slug]);
+    },
+    [appointment, date, slug],
+  );
 
   useEffect(() => {
     if (!appointment) return;
@@ -157,17 +172,15 @@ export default function ReschedulePage() {
   if (loadFailed && !appointment) {
     return (
       <AppContainer>
-        <div className="rounded-[30px] border border-red-500/20 bg-red-500/10 px-5 py-6 text-center space-y-4">
-          <p className="text-lg font-semibold text-red-200">
-            No se puede modificar esta reserva
-          </p>
-          <button
-            onClick={() => router.push(`/barbershops/${slug}/my-bookings`)}
-            className="w-full rounded-2xl bg-white py-3.5 font-medium text-black transition hover:bg-slate-200"
-          >
-            Volver a mis citas
-          </button>
-        </div>
+        <ErrorState
+          title="No se puede modificar esta reserva"
+          description={
+            error ??
+            "La reserva no existe, ya fue eliminada o el enlace ha expirado."
+          }
+          actionLabel="Volver a mis citas"
+          onAction={() => router.push(`/barbershops/${slug}/my-bookings`)}
+        />
       </AppContainer>
     );
   }
@@ -189,18 +202,12 @@ export default function ReschedulePage() {
   if (appointment.cancelledAt) {
     return (
       <AppContainer>
-        <div className="rounded-[30px] border border-red-500/20 bg-red-500/10 px-5 py-6 text-center space-y-4">
-          <p className="text-lg font-semibold text-red-200">
-            Esta cita está cancelada
-          </p>
-
-          <button
-            onClick={() => router.push(`/barbershops/${slug}`)}
-            className="w-full rounded-2xl bg-white py-3.5 font-medium text-black transition hover:bg-slate-200"
-          >
-            Reservar nueva cita
-          </button>
-        </div>
+        <ErrorState
+          title="Esta cita está cancelada"
+          description="Las citas canceladas no pueden ser reprogramadas."
+          actionLabel="Reservar nueva cita"
+          onAction={() => router.push(`/barbershops/${slug}`)}
+        />
       </AppContainer>
     );
   }
@@ -211,76 +218,356 @@ export default function ReschedulePage() {
 
   return (
     <AppContainer>
-      <section className="rounded-[34px] border border-white/8 bg-[linear-gradient(180deg,rgba(18,24,38,0.98),rgba(11,16,26,0.98))] px-5 py-6 text-center shadow-[0_12px_40px_rgba(0,0,0,0.28)]">
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-blue-200">
-          Reprogramar
-        </div>
+      <div className="w-full space-y-6">
+        <section className="overflow-hidden rounded-[2.5rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(60,130,246,0.18),transparent_30%),linear-gradient(180deg,rgba(17,24,39,0.96),rgba(11,16,28,0.94))] shadow-[0_30px_100px_rgba(0,0,0,0.35)]">
+          {/* MOBILE */}
 
-        <h1 className="mt-4 text-[2.4rem] font-semibold leading-[1] tracking-tight text-white">
-          Modificar cita
-        </h1>
+          <div className="space-y-6 px-5 py-5 lg:hidden">
+            <div>
+              <div className="inline-flex items-center rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-cyan-200">
+                Reprogramar cita
+              </div>
 
-        <p className="mt-3 text-base text-gray-300">
-          {appointment.serviceName} — {appointment.barberName}
-        </p>
+              <p className="mt-5 text-sm uppercase tracking-[0.2em] text-slate-500">
+                {formatDate(appointment.startTime)}
+              </p>
 
-        <p className="mt-1 text-sm text-gray-500">
-          {formatDate(appointment.startTime)} ·{" "}
-          {formatTime(appointment.startTime)}
-        </p>
-      </section>
+              <h1 className="mt-3 text-5xl font-bold leading-[0.9] tracking-tight text-white">
+                {appointment.serviceName}
+              </h1>
 
-      {magicMessage && (
-        <p className="rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-center text-sm text-green-200">
-          {magicMessage}
-        </p>
-      )}
+              <p className="mt-4 text-lg text-slate-300">
+                con{" "}
+                <span className="font-semibold text-white">
+                  {appointment.barberName}
+                </span>
+              </p>
+            </div>
 
-      <DateSelector
-        date={date}
-        minDate={today}
-        onChange={setDate}
-        onCheck={loadSlots}
-      />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-[1.8rem] border border-white/8 bg-black/20 p-5">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                  Horario actual
+                </p>
 
-      {loadingSlots && (
-        <p className="rounded-[28px] border border-white/8 bg-[#121826] px-5 py-5 text-center text-sm text-gray-400">
-          Cargando horarios...
-        </p>
-      )}
+                <p className="mt-3 text-5xl font-bold leading-none text-white">
+                  {formatTime(appointment.startTime)}
+                </p>
+              </div>
 
-      {!loadingSlots && slots.length > 0 && (
-        <SlotSelector
-          slots={slots}
-          selectedSlot={selectedSlot}
-          onSelect={setSelectedSlot}
-        />
-      )}
+              <div className="rounded-[1.8rem] border border-white/8 bg-black/20 p-5">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                  Nueva fecha
+                </p>
 
-      {!loadingSlots && slots.length === 0 && (
-        <div className="rounded-[28px] border border-red-500/20 bg-red-500/10 px-5 py-5 text-center space-y-2">
-          <p className="text-base font-medium text-white">
-            No hay disponibilidad para este día
-          </p>
-          <p className="text-sm text-gray-400">
-            Prueba con otra fecha para encontrar un nuevo hueco.
-          </p>
-        </div>
-      )}
+                <p className="mt-3 text-2xl font-bold text-white">
+                  {formatDate(date)}
+                </p>
 
-      {error && <p className="text-center text-sm text-red-300">{error}</p>}
+                <p className="mt-2 text-sm text-slate-400">
+                  {slots.length} huecos disponibles
+                </p>
+              </div>
+            </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !selectedSlot}
-        className={`w-full py-3 rounded-2xl font-medium transition ${
-          loading || !selectedSlot
-            ? "bg-gray-800 text-gray-500"
-            : "bg-blue-600 hover:bg-blue-500 text-white"
-        }`}
-      >
-        {loading ? "Actualizando..." : "Confirmar nuevo horario"}
-      </button>
+            <div className="rounded-[1.9rem] border border-white/8 bg-[#111827]/88 p-4">
+              <DateSelector
+                date={date}
+                minDate={today}
+                onChange={setDate}
+                onCheck={loadSlots}
+              />
+            </div>
+
+            <div className="rounded-[1.9rem] border border-white/8 bg-[#111827]/88 p-4">
+              {loadingSlots ? (
+                <div className="rounded-2xl border border-white/8 bg-black/20 px-5 py-10 text-center text-sm text-slate-400">
+                  Buscando horarios disponibles...
+                </div>
+              ) : (
+                <>
+                  <SlotSelector
+                    slots={slots}
+                    selectedSlot={selectedSlot}
+                    onSelect={setSelectedSlot}
+                  />
+
+                  {!loadingSlots && slots.length === 0 && (
+                    <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-5 text-center">
+                      <p className="text-base font-semibold text-white">
+                        No hay disponibilidad
+                      </p>
+
+                      <p className="mt-2 text-sm text-slate-400">
+                        Prueba con otra fecha para encontrar nuevos huecos.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {selectedSlot && (
+              <div className="rounded-[1.9rem] border border-cyan-400/20 bg-cyan-400/10 p-5">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200/70">
+                  Nuevo horario
+                </p>
+
+                <div className="mt-4">
+                  <p className="text-4xl font-bold leading-none text-white">
+                    {selectedSlot}
+                  </p>
+
+                  <p className="mt-2 text-sm text-slate-300">
+                    {formatDate(date)}
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || !selectedSlot}
+                  className={`mt-5 inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-sm font-semibold transition ${
+                    loading || !selectedSlot
+                      ? "cursor-not-allowed bg-slate-800 text-slate-500"
+                      : "bg-cyan-300 text-slate-950 hover:bg-cyan-200"
+                  }`}
+                >
+                  {loading ? "Actualizando..." : "Confirmar nuevo horario"}
+                </button>
+              </div>
+            )}
+
+            {magicMessage && (
+              <div className="rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-200">
+                {magicMessage}
+              </div>
+            )}
+          </div>
+
+          {/* DESKTOP */}
+
+          <div className="hidden lg:grid gap-5 items-start px-6 py-6 xl:px-8 xl:py-8">
+            {/* CONTENT */}
+
+            <div className="space-y-5">
+              {/* TOP */}
+
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+                {/* HERO */}
+
+                <div className="rounded-[1.9rem] border border-white/8 bg-[#111827]/88 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+                  <div className="inline-flex items-center rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-cyan-200">
+                    Reprogramar cita
+                  </div>
+
+                  <p className="mt-6 text-sm uppercase tracking-[0.2em] text-slate-500">
+                    {formatDate(appointment.startTime)}
+                  </p>
+
+                  <h1 className="mt-3 text-6xl font-bold leading-[0.88] tracking-tight text-white">
+                    {appointment.serviceName}
+                  </h1>
+
+                  <p className="mt-4 text-xl text-slate-300">
+                    con{" "}
+                    <span className="font-semibold text-white">
+                      {appointment.barberName}
+                    </span>
+                  </p>
+                </div>
+
+                {/* STATUS */}
+
+                <aside className="rounded-[1.9rem] border border-white/8 bg-[#111827] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.2)]">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-blue-200/70">
+                    Estado de la reprogramación
+                  </p>
+
+                  <div className="mt-6 space-y-5">
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <p className="text-sm text-slate-500">Servicio</p>
+
+                        <p className="mt-1 text-base font-semibold text-white">
+                          {appointment.serviceName}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-slate-500">Barbero</p>
+
+                        <p className="mt-1 text-base font-semibold text-white">
+                          {appointment.barberName}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <p className="text-sm text-slate-500">Fecha actual</p>
+
+                        <p className="mt-1 text-base font-semibold text-white">
+                          {formatDate(appointment.startTime)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-slate-500">Hora actual</p>
+
+                        <p className="mt-1 text-base font-semibold text-white">
+                          {formatTime(appointment.startTime)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/8 pt-5">
+                      <p className="text-sm text-slate-500">Nuevo horario</p>
+
+                      <p className="mt-2 text-lg font-semibold text-cyan-300">
+                        {selectedSlot
+                          ? `${formatDate(date)} · ${selectedSlot.slice(0, 5)}`
+                          : "Pendiente"}
+                      </p>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+
+              {/* INFO */}
+
+              <div className="grid gap-5 xl:grid-cols-2">
+                <section className="rounded-[1.9rem] border border-white/8 bg-[#111827]/88 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-blue-200/70">
+                    Horario actual
+                  </p>
+
+                  <p className="mt-5 text-6xl font-bold leading-none text-white">
+                    {formatTime(appointment.startTime)}
+                  </p>
+                </section>
+
+                <section className="rounded-[1.9rem] border border-white/8 bg-[#111827]/88 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-blue-200/70">
+                    Nueva fecha
+                  </p>
+
+                  <p className="mt-5 text-3xl font-bold text-white">
+                    {formatDate(date)}
+                  </p>
+
+                  <p className="mt-3 text-sm text-slate-400">
+                    {slots.length} huecos disponibles
+                  </p>
+                </section>
+              </div>
+
+              {/* CALENDAR + SLOTS */}
+
+              <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+                <section className="rounded-[1.9rem] border border-white/8 bg-[#111827]/88 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+                  <DateSelector
+                    compact
+                    date={date}
+                    minDate={today}
+                    onChange={setDate}
+                    onCheck={loadSlots}
+                  />
+                </section>
+
+                <section className="rounded-[1.9rem] border border-white/8 bg-[#111827]/88 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+                  {loadingSlots ? (
+                    <div className="rounded-2xl border border-white/8 bg-black/20 px-5 py-10 text-center text-sm text-slate-400">
+                      Buscando horarios disponibles...
+                    </div>
+                  ) : slots.length > 0 ? (
+                    <SlotSelector
+                      compact
+                      slots={slots}
+                      selectedSlot={selectedSlot}
+                      onSelect={setSelectedSlot}
+                    />
+                  ) : (
+                    <div className="flex min-h-[320px] items-center justify-center rounded-[1.6rem] border border-red-500/20 bg-red-500/10 p-6 text-center">
+                      <div className="max-w-xs">
+                        <p className="text-lg font-semibold text-white">
+                          No hay disponibilidad
+                        </p>
+
+                        <p className="mt-3 text-sm leading-6 text-slate-300">
+                          Prueba con otra fecha para encontrar nuevos huecos.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              {magicMessage && (
+                <div className="rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-200">
+                  {magicMessage}
+                </div>
+              )}
+
+              {/* ACTION */}
+
+              {selectedSlot ? (
+                <div className="rounded-[1.9rem] border border-cyan-400/20 bg-cyan-400/10 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.2)]">
+                  <div className="flex items-center justify-between gap-5">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">
+                        Confirmar cambio
+                      </p>
+
+                      <p className="mt-4 text-4xl font-bold leading-none text-white">
+                        {selectedSlot.slice(0, 5)}
+                      </p>
+
+                      <p className="mt-2 text-sm text-slate-300">
+                        {formatDate(date)}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleSubmit}
+                      disabled={loading || !selectedSlot}
+                      className={`inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold transition ${
+                        loading || !selectedSlot
+                          ? "cursor-not-allowed bg-slate-800 text-slate-500"
+                          : "bg-cyan-300 text-slate-950 hover:bg-cyan-200"
+                      }`}
+                    >
+                      {loading ? "Actualizando..." : "Confirmar nuevo horario"}
+                    </button>
+                  </div>
+
+                  {error && (
+                    <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                      {error}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-[1.9rem] border border-white/8 bg-[#111827] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.2)]">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-blue-200/70">
+                    Siguiente paso
+                  </p>
+
+                  <p className="mt-3 text-sm leading-7 text-slate-300">
+                    Selecciona una nueva fecha y un horario disponible para
+                    completar la reprogramación.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
     </AppContainer>
   );
 }
