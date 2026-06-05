@@ -18,6 +18,12 @@ public class AppConfig {
     @ConfigProperty(name = "app.cookies.secure", defaultValue = "false")
     boolean secureCookies;
 
+    @ConfigProperty(name = "admin.seed.email")
+    String adminSeedEmail;
+
+    @ConfigProperty(name = "admin.seed.password")
+    String adminSeedPassword;
+
     public String getFrontendUrl() {
         return frontendUrl;
     }
@@ -32,5 +38,13 @@ public class AppConfig {
 
     public boolean isSecureCookies() {
         return secureCookies;
+    }
+
+    public String getAdminSeedEmail() {
+        return adminSeedEmail;
+    }
+
+    public String getAdminSeedPassword() {
+        return adminSeedPassword;
     }
 }
