@@ -28,9 +28,8 @@ public class AppointmentEmailListener {
         try {
             emailService.sendAppointmentConfirmation(
                     a,
-                    buildManageUrl(event.slug(), a.getId(), a.getCustomerEmail()),
-                    buildCancelUrl(event.slug(), event.cancelToken()),
-                    buildLoginUrl(event.slug(), a.getCustomerEmail())
+                    buildManageUrl(event.slug(), a.getCustomerEmail()),
+                    buildCancelUrl(event.slug(), event.cancelToken())
             );
 
         } catch (Exception e) {
@@ -44,7 +43,7 @@ public class AppointmentEmailListener {
         try {
             emailService.sendAppointmentRescheduled(
                     a,
-                    buildManageUrl(event.slug(), a.getId(), a.getCustomerEmail())
+                    buildManageUrl(event.slug(), a.getCustomerEmail())
             );
 
         } catch (Exception e) {
@@ -70,21 +69,16 @@ public class AppointmentEmailListener {
     // URL BUILDERS (DRY)
     // =========================
 
-    private String buildManageUrl(String slug, Long appointmentId, String email) {
-        String token = authService.createMagicSession(email, appointmentId);
+    private String buildManageUrl(String slug, String email) {
+        String token = authService.createMagicSession(email);
         return baseUrl(slug)
-                + "/my-bookings/" + appointmentId
+                + "/my-bookings"
                 + "?token=" + token;
     }
 
     private String buildCancelUrl(String slug, String cancelToken) {
         return baseUrl(slug)
                 + "/cancel?token=" + cancelToken;
-    }
-
-    private String buildLoginUrl(String slug, String email) {
-        String token = authService.createMagicSession(email, null);
-        return baseUrl(slug) + "/my-bookings?token=" + token;
     }
 
     private String buildBookingUrl(String slug) {

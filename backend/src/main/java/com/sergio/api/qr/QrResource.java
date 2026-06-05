@@ -22,7 +22,7 @@ public class QrResource {
     @Produces("application/pdf")
     public Response getQr(@PathParam("slug") String slug) {
 
-        String url = appConfig.getBackendUrl() + "/barbershops/" + slug + "/qr";
+        String url = appConfig.getFrontendUrl() + "/barbershops/" + slug + "/qr";
 
         byte[] pdf = qrPdfService.generatePdf(slug, url);
 
