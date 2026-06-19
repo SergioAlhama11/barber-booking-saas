@@ -140,4 +140,21 @@ public class RedisRateLimiter {
                 "Too many attempts"
         );
     }
+
+    public void checkImportLimit(Long barbershopId) {
+
+        checkLimit(
+                "rl:import:minute:" + barbershopId,
+                5,
+                Duration.ofMinutes(1),
+                "Too many imports"
+        );
+
+        checkLimit(
+                "rl:import:day:" + barbershopId,
+                50,
+                Duration.ofDays(1),
+                "Daily import limit reached"
+        );
+    }
 }

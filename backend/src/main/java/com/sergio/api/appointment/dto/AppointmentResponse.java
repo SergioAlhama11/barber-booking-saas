@@ -5,8 +5,10 @@ import java.time.LocalDateTime;
 
 public record AppointmentResponse(
         Long id,
+        Long barbershopId,
         Long barberId,
         Long serviceId,
+        String barbershopName,
         String barberName,
         String serviceName,
         String customerName,

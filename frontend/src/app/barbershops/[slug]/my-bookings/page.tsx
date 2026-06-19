@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAppointments } from "@/hooks/useAppointments";
+import { useAppointments } from "@/hooks/booking/useAppointments";
 import AppointmentSection from "@/components/AppointmentSection";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import AppContainer from "@/components/AppContainer";
 import AuthModal from "@/components/AuthModal";
 import type { Appointment } from "@/services/api";
 import { clearAuthSession } from "@/services/authSession";
-import { useSession } from "@/hooks/useSessions";
-import { useMagicAccess } from "@/hooks/useMagicAccess";
+import { useSession } from "@/hooks/booking/useSessions";
+import { useMagicAccess } from "@/hooks/booking/useMagicAccess";
 import { formatDate, formatTime } from "@/services/dateService";
 import { cancelAppointment } from "@/services/api";
 import ConfirmModal from "@/components/ConfirmModal";

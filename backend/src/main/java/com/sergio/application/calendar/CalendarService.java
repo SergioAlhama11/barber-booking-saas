@@ -14,6 +14,7 @@ public class CalendarService {
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
     private static final DateTimeFormatter LOCAL_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss");
     private static final DateTimeFormatter UTC_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
+    private static final DateTimeFormatter DESCRIPTION_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZONE);
 
     public String generateIcs(Appointment a) {
 
@@ -24,15 +25,16 @@ public class CalendarService {
         String end = formatLocal(a.getEndTime());
 
         String description = escape(
-                "Cita en barbería\n" +
                         "Servicio: " + a.getServiceName() + "\n" +
-                        "Barbero: " + a.getBarberName()
+                        "Barbero: " + a.getBarberName() + "\n" +
+                        "Fecha: " + formatForDescription(a.getStartTime()) + "\n\n" +
+                        "Reserva gestionada mediante Trimly."
         );
 
         return """
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//BarberApp//EN
+PRODID:-//Trimly//EN
 CALSCALE:GREGORIAN
 METHOD:REQUEST
 BEGIN:VEVENT
@@ -43,10 +45,9 @@ DTSTAMP:%s
 LAST-MODIFIED:%s
 DTSTART;TZID=Europe/Madrid:%s
 DTEND;TZID=Europe/Madrid:%s
-SUMMARY:%s - %s
+SUMMARY:Cita - %s
 DESCRIPTION:%s
-LOCATION:Barbería
-ORGANIZER:mailto:no-reply@barberapp.com
+LOCATION:%s
 ATTENDEE;ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:%s
 BEGIN:VALARM
 TRIGGER:-PT30M
@@ -63,8 +64,8 @@ END:VCALENDAR
                 start,
                 end,
                 a.getServiceName(),
-                a.getCustomerName(),
                 description,
+                a.getBarbershopName(),
                 a.getCustomerEmail()
         );
     }
@@ -72,28 +73,45 @@ END:VCALENDAR
     public String generateCancelledIcs(Appointment a) {
         String uid = buildUid(a);
         String now = utcNow();
-
         String start = formatLocal(a.getStartTime());
+        String end = formatLocal(a.getEndTime());
 
         return """
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//BarberApp//EN
+PRODID:-//Trimly//EN
+CALSCALE:GREGORIAN
 METHOD:CANCEL
+
 BEGIN:VEVENT
 UID:%s
 SEQUENCE:%d
+
 STATUS:CANCELLED
+
+TRANSP:TRANSPARENT
+
 DTSTAMP:%s
+LAST-MODIFIED:%s
+
 DTSTART;TZID=Europe/Madrid:%s
-SUMMARY:Cita cancelada
+DTEND;TZID=Europe/Madrid:%s
+
+SUMMARY:Cita cancelada - %s
+
+ATTENDEE:mailto:%s
+
 END:VEVENT
 END:VCALENDAR
 """.formatted(
                 uid,
                 a.getCalendarVersion(),
                 now,
-                start
+                now,
+                start,
+                end,
+                a.getServiceName(),
+                a.getCustomerEmail()
         );
     }
 
@@ -102,11 +120,15 @@ END:VCALENDAR
     // =========================
 
     private String buildUid(Appointment a) {
-        return "appointment-" + a.getId() + "@barberapp";
+        return "appointment-" + a.getId() + "@trimly.app";
     }
 
     private String formatLocal(Instant instant) {
         return instant.atZone(ZONE).format(LOCAL_FORMAT);
+    }
+
+    private String formatForDescription(Instant instant) {
+        return DESCRIPTION_FORMAT.format(instant);
     }
 
     private String utcNow() {

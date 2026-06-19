@@ -17,7 +17,7 @@ import {
   getTodayLocal,
 } from "@/services/dateService";
 import AppContainer from "@/components/AppContainer";
-import { useMagicAccess } from "@/hooks/useMagicAccess";
+import { useMagicAccess } from "@/hooks/booking/useMagicAccess";
 import ErrorState from "@/components/ErrorState";
 
 export default function ReschedulePage() {

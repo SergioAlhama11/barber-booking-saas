@@ -9,6 +9,7 @@ public class Appointment {
     private Long barbershopId;
     private Long barberId;
     private Long serviceId;
+    private String barbershopName;
     private String barberName;
     private String serviceName;
     private String customerName;
@@ -16,14 +17,15 @@ public class Appointment {
     private Instant startTime;
     private Instant endTime;
     private Instant cancelledAt;
-    private String source;
+    private AppointmentSource source;
     private int calendarVersion;
 
-    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String barberName, String serviceName, String customerName, String customerEmail, Instant startTime, Instant endTime, Instant cancelledAt, String source, int calendarVersion) {
+    public Appointment(Long id, Long barbershopId, Long barberId, Long serviceId, String barbershopName, String barberName, String serviceName, String customerName, String customerEmail, Instant startTime, Instant endTime, Instant cancelledAt, AppointmentSource source, int calendarVersion) {
         this.id = id;
         this.barbershopId = barbershopId;
         this.barberId = barberId;
         this.serviceId = serviceId;
+        this.barbershopName = barbershopName;
         this.barberName = barberName;
         this.serviceName = serviceName;
         this.customerName = customerName;
@@ -67,6 +69,14 @@ public class Appointment {
 
     public void setServiceId(Long serviceId) {
         this.serviceId = serviceId;
+    }
+
+    public String getBarbershopName() {
+        return barbershopName;
+    }
+
+    public void setBarbershopName(String barbershopName) {
+        this.barbershopName = barbershopName;
     }
 
     public String getBarberName() {
@@ -121,11 +131,11 @@ public class Appointment {
 
     public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
 
-    public String getSource() {
+    public AppointmentSource getSource() {
         return source;
     }
 
-    public void setSource(String source) {
+    public void setSource(AppointmentSource source) {
         this.source = source;
     }
 

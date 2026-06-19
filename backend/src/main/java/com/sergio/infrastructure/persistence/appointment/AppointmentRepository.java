@@ -36,6 +36,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.barbershopId,
             a.barberId,
             a.serviceId,
+            bs.name,
             b.name,
             s.name,
             a.customerName,
@@ -47,6 +48,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.calendarVersion
         )
         FROM AppointmentEntity a
+        JOIN BarbershopEntity bs ON bs.id = a.barbershopId
         JOIN BarberEntity b ON b.id = a.barberId
         JOIN ServiceEntity s ON s.id = a.serviceId
         WHERE a.barbershopId = :barbershopId
@@ -70,6 +72,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.barbershopId,
             a.barberId,
             a.serviceId,
+            bs.name,
             b.name,
             s.name,
             a.customerName,
@@ -81,6 +84,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.calendarVersion
         )
         FROM AppointmentEntity a
+        JOIN BarbershopEntity bs ON bs.id = a.barbershopId
         JOIN BarberEntity b ON b.id = a.barberId
         JOIN ServiceEntity s ON s.id = a.serviceId
         WHERE a.barbershopId = :barbershopId
@@ -101,6 +105,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.barbershopId,
             a.barberId,
             a.serviceId,
+            bs.name,
             b.name,
             s.name,
             a.customerName,
@@ -112,6 +117,7 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             a.calendarVersion
         )
         FROM AppointmentEntity a
+        JOIN BarbershopEntity bs ON bs.id = a.barbershopId
         JOIN BarberEntity b ON b.id = a.barberId
         JOIN ServiceEntity s ON s.id = a.serviceId
         WHERE a.barbershopId = :barbershopId
@@ -126,30 +132,37 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
 
     public List<AppointmentProjection> findDetailedByFilters(
             Long barbershopId,
-            AdminAppointmentFilterRequest filter
+            AdminAppointmentFilterRequest filter,
+            Long effectiveBarberId
     ) {
 
         StringBuilder jpql = new StringBuilder("""
-        SELECT new com.sergio.infrastructure.persistence.appointment.AppointmentProjection(
-            a.id,
-            a.barbershopId,
-            a.barberId,
-            a.serviceId,
-            b.name,
-            s.name,
-            a.customerName,
-            a.customerEmail,
-            a.startTime,
-            a.endTime,
-            a.cancelledAt,
-            a.source,
-            a.calendarVersion
-        )
-        FROM AppointmentEntity a
-        JOIN BarberEntity b ON b.id = a.barberId
-        JOIN ServiceEntity s ON s.id = a.serviceId
-        WHERE a.barbershopId = :barbershopId
+    SELECT new com.sergio.infrastructure.persistence.appointment.AppointmentProjection(
+        a.id,
+        a.barbershopId,
+        a.barberId,
+        a.serviceId,
+        bs.name,
+        b.name,
+        s.name,
+        a.customerName,
+        a.customerEmail,
+        a.startTime,
+        a.endTime,
+        a.cancelledAt,
+        a.source,
+        a.calendarVersion
+    )
+    FROM AppointmentEntity a
+    JOIN BarbershopEntity bs ON bs.id = a.barbershopId
+    JOIN BarberEntity b ON b.id = a.barberId
+    JOIN ServiceEntity s ON s.id = a.serviceId
+    WHERE 1 = 1
     """);
+
+        if (barbershopId != null) {
+            jpql.append(" AND a.barbershopId = :barbershopId");
+        }
 
         if (filter.from != null) {
             jpql.append(" AND a.startTime >= :from");
@@ -159,30 +172,29 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             jpql.append(" AND a.startTime <= :to");
         }
 
-        if (filter.barberId != null) {
+        if (effectiveBarberId != null) {
             jpql.append(" AND a.barberId = :barberId");
         }
 
         if (filter.status != null) {
-
             switch (filter.status) {
 
                 case ACTIVE ->
                         jpql.append("""
-                    AND a.cancelledAt IS NULL
-                    AND a.endTime >= :now
-                """);
+                AND a.cancelledAt IS NULL
+                AND a.endTime >= :now
+            """);
 
                 case COMPLETED ->
                         jpql.append("""
-                    AND a.cancelledAt IS NULL
-                    AND a.endTime < :now
-                """);
+                AND a.cancelledAt IS NULL
+                AND a.endTime < :now
+            """);
 
                 case CANCELLED ->
                         jpql.append("""
-                    AND a.cancelledAt IS NOT NULL
-                """);
+                AND a.cancelledAt IS NOT NULL
+            """);
 
                 case ALL -> {
                 }
@@ -190,24 +202,25 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
         }
 
         if (filter.search != null && !filter.search.isBlank()) {
-
             jpql.append("""
-            AND (
-                LOWER(a.customerName) LIKE :search
-                OR LOWER(a.customerEmail) LIKE :search
-            )
-        """);
+                AND (
+                    LOWER(a.customerName) LIKE :search
+                    OR LOWER(a.customerEmail) LIKE :search
+                )
+            """);
         }
 
         jpql.append(" ORDER BY a.startTime DESC");
 
         var query = getEntityManager()
-                .createQuery(jpql.toString(), AppointmentProjection.class)
-                .setParameter("barbershopId", barbershopId);
+                .createQuery(jpql.toString(), AppointmentProjection.class);
+
+        if (barbershopId != null) {
+            query.setParameter("barbershopId", barbershopId);
+        }
 
         if (filter.status == AppointmentStatusFilter.ACTIVE
                 || filter.status == AppointmentStatusFilter.COMPLETED) {
-
             query.setParameter("now", Instant.now());
         }
 
@@ -219,8 +232,8 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             query.setParameter("to", filter.to);
         }
 
-        if (filter.barberId != null) {
-            query.setParameter("barberId", filter.barberId);
+        if (effectiveBarberId != null) {
+            query.setParameter("barberId", effectiveBarberId);
         }
 
         if (filter.search != null && !filter.search.isBlank()) {
@@ -234,6 +247,14 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
                 .setFirstResult(filter.page * filter.size)
                 .setMaxResults(filter.size)
                 .getResultList();
+    }
+
+    public boolean existsByBarberId(Long barberId) {
+        return count("barberId", barberId) > 0;
+    }
+
+    public boolean existsByServiceId(Long serviceId) {
+        return count("serviceId", serviceId) > 0;
     }
 
     // ANTIFRAUDE
@@ -275,6 +296,16 @@ public class AppointmentRepository implements PanacheRepository<AppointmentEntit
             and startTime < ?2
             and endTime > ?3
         """, barberId, end, start) > 0;
+    }
+
+    public boolean existsOverlappingExcludingId(Long barberId, Instant start, Instant end, Long id) {
+        return count("""
+        barberId = ?1
+        and cancelledAt is null
+        and id != ?2
+        and startTime < ?3
+        and endTime > ?4
+    """, barberId, id, end, start) > 0;
     }
 
     public boolean existsCustomerOverlap(Long barbershopId, String email, Instant start, Instant end) {

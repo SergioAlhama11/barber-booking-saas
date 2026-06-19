@@ -1,5 +1,7 @@
 package com.sergio.infrastructure.persistence.appointment;
 
+import com.sergio.domain.appointment.AppointmentSource;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 
@@ -8,6 +10,7 @@ public record AppointmentProjection(
         Long barbershopId,
         Long barberId,
         Long serviceId,
+        String barbershopName,
         String barberName,
         String serviceName,
         String customerName,
@@ -15,6 +18,6 @@ public record AppointmentProjection(
         Instant startTime,
         Instant endTime,
         Instant cancelledAt,
-        String source,
+        AppointmentSource source,
         int calendarVersion
 ) {}

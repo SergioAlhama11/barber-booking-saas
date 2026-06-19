@@ -1,6 +1,9 @@
 package com.sergio.application.notification;
 
 import com.sergio.application.calendar.CalendarService;
+import com.sergio.application.notification.template.AppointmentActionSource;
+import com.sergio.application.notification.template.AppointmentEmailFactory;
+import com.sergio.application.notification.template.EmailContent;
 import com.sergio.application.notification.template.EmailTemplateLoader;
 import com.sergio.domain.appointment.Appointment;
 import com.sergio.infrastructure.config.AppConfig;
@@ -22,9 +25,6 @@ public class EmailServiceImpl implements EmailService {
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy - HH:mm").withZone(ZONE);
 
-    private static final String CONFIRMATION_EMAIL_SUBJECT = "Confirmación de cita - Barbería";
-    private static final String RESCHEDULED_EMAIL_SUBJECT = "Modificación de cita - Barbería";
-    private static final String CANCELLED_EMAIL_SUBJECT = "Cancelación de cita - Barbería";
     private static final String OTP_EMAIL_SUBJECT = "Código de acceso";
 
     private static final Logger LOG = Logger.getLogger(EmailServiceImpl.class);
@@ -56,19 +56,19 @@ public class EmailServiceImpl implements EmailService {
     // =========================
 
     @Override
-    public void sendAppointmentConfirmation(
-            Appointment a,
-            String manageUrl,
-            String cancelUrl
-    ) {
+    public void sendAppointmentConfirmation(Appointment a, String manageUrl, String cancelUrl, AppointmentActionSource source) {
+
+        EmailContent content = AppointmentEmailFactory.confirmationContent(source);
 
         String ics = calendarService.generateIcs(a);
 
         send(
                 a.getCustomerEmail(),
-                CONFIRMATION_EMAIL_SUBJECT,
+                content.subject(),
                 "confirmation.html",
                 Map.of(
+                        "title", content.title(),
+                        "message", content.message(),
                         "name", a.getCustomerName(),
                         "service", a.getServiceName(),
                         "barber", a.getBarberName(),
@@ -81,18 +81,18 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendAppointmentRescheduled(
-            Appointment a,
-            String manageUrl
-    ) {
+    public void sendAppointmentRescheduled(Appointment a, String manageUrl, AppointmentActionSource source) {
 
+        EmailContent content = AppointmentEmailFactory.rescheduledContent(source);
         String ics = calendarService.generateIcs(a);
 
         send(
                 a.getCustomerEmail(),
-                RESCHEDULED_EMAIL_SUBJECT,
+                content.subject(),
                 "rescheduled.html",
                 Map.of(
+                        "title", content.title(),
+                        "message", content.message(),
                         "name", a.getCustomerName(),
                         "service", a.getServiceName(),
                         "barber", a.getBarberName(),
@@ -104,14 +104,18 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendAppointmentCancelled(Appointment appointment, String bookingUrl) {
+    public void sendAppointmentCancelled(Appointment appointment, String bookingUrl, AppointmentActionSource source) {
+
+        EmailContent content = AppointmentEmailFactory.cancelledContent(source);
         String ics = calendarService.generateCancelledIcs(appointment);
 
         send(
                 appointment.getCustomerEmail(),
-                CANCELLED_EMAIL_SUBJECT,
+                content.subject(),
                 "cancelled.html",
                 Map.of(
+                        "title", content.title(),
+                        "message", content.message(),
                         "name", appointment.getCustomerName(),
                         "service", appointment.getServiceName(),
                         "barber", appointment.getBarberName(),
