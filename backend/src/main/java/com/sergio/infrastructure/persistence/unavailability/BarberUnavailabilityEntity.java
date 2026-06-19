@@ -14,24 +14,31 @@ public class BarberUnavailabilityEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "barbershop_id", nullable = false)
     private Long barbershopId;
 
+    @Column(name = "barber_id", nullable = false)
     private Long barberId;
 
+    @Column(name = "start_time", nullable = false)
     private Instant startTime;
 
+    @Column(name = "end_time", nullable = false)
     private Instant endTime;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private UnavailabilityType type;
 
     @Enumerated(EnumType.STRING)
     private UnavailabilityRecurrence recurrence;
 
+    @Column(name = "recurrence_until")
     private Instant recurrenceUntil;
 
     private String reason;
 
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     public Long getId() {
