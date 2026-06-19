@@ -1,7 +1,7 @@
 package com.sergio.api.availability;
 
 import com.sergio.api.availability.dto.AvailabilityResponse;
-import com.sergio.application.availability.AvailabilityService;
+import com.sergio.application.scheduling.AvailabilityService;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
