@@ -32,7 +32,6 @@ export function useBooking(slug: string) {
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
-  const [source, setSource] = useState<string>("direct");
 
   // =========================
   // INIT
@@ -66,12 +65,6 @@ export function useBooking(slug: string) {
       }),
     );
   }, [selectedBarber, selectedService, storageKey]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const src = params.get("src");
-    if (src) setSource(src);
-  }, []);
 
   // =========================
   // HELPERS
@@ -253,7 +246,6 @@ export function useBooking(slug: string) {
         customerName,
         customerEmail,
         startTime,
-        source,
       });
 
       if (response.error || !response.data) {
@@ -288,7 +280,6 @@ export function useBooking(slug: string) {
     loading,
     loadingSlots,
     error,
-    source,
     setCustomerName,
     setCustomerEmail,
     selectService,

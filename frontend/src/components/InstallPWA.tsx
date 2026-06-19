@@ -1,6 +1,6 @@
 "use client";
 
-import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { usePWAInstall } from "@/hooks/pwa/usePWAInstall";
 
 export default function InstallPWA() {
   const { install, dismiss, visible, canInstall, isIOS, isStandalone } =

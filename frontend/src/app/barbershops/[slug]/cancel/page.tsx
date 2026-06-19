@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
 import AppContainer from "@/components/AppContainer";
-import AppHeader from "@/components/AppHeader";
 import CancelStatus from "@/components/CancelStatus";
 
 import { cancelAppointmentByToken } from "@/services/api";
@@ -17,26 +16,22 @@ export default function CancelPage() {
   const success = searchParams.get("success");
 
   const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading",
+    success === "true" ? "success" : token ? "loading" : "error",
   );
 
-  const [message, setMessage] = useState<string>();
+  const [message, setMessage] = useState<string | undefined>(
+    token ? undefined : "Token no proporcionado",
+  );
 
   useEffect(() => {
-    // ✅ cancelación manual desde my-bookings
     if (success === "true") {
-      setStatus("success");
       return;
     }
 
-    // ❌ sin token
     if (!token) {
-      setStatus("error");
-      setMessage("Token no proporcionado");
       return;
     }
 
-    // ✅ cancelación vía email/token
     cancelAppointmentByToken(slug, token)
       .then(() => {
         setStatus("success");

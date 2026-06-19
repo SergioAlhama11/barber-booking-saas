@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
-import { useSession } from "@/hooks/useSessions";
+import { useSession } from "@/hooks/booking/useSessions";
 import { getBarbershop } from "@/services/api";
 
 export default function AppHeader() {

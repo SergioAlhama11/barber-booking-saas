@@ -23,10 +23,12 @@ export type ApiResponse<T> = {
 
 export type Appointment = {
   id: number;
-  serviceName: string;
-  barberName: string;
+  barbershopId: number;
   barberId: number;
   serviceId: number;
+  barbershopName: string;
+  barberName: string;
+  serviceName: string;
   customerEmail: string;
   startTime: string;
   cancelledAt?: string | null;
@@ -192,7 +194,6 @@ export function createAppointment(
     customerName: string;
     customerEmail: string;
     startTime: string;
-    source?: string;
   },
 ) {
   return apiFetch<{

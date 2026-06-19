@@ -1,9 +1,9 @@
 package com.sergio.infrastructure.persistence.appointment;
 
+import com.sergio.domain.appointment.AppointmentSource;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "appointments")
@@ -51,8 +51,9 @@ public class AppointmentEntity {
     @Column(name = "last_resend_at")
     private Instant lastResendAt;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "source")
-    private String source;
+    private AppointmentSource source;
 
     @Column(name = "calendar_version", nullable = false)
     private int calendarVersion = 0;
@@ -153,11 +154,11 @@ public class AppointmentEntity {
 
     public void setLastResendAt(Instant lastResendAt) { this.lastResendAt = lastResendAt; }
 
-    public String getSource() {
+    public AppointmentSource getSource() {
         return source;
     }
 
-    public void setSource(String source) {
+    public void setSource(AppointmentSource source) {
         this.source = source;
     }
 

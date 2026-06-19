@@ -1,7 +1,7 @@
 "use client";
 
 import { Service, Barber } from "@/types";
-import { useBooking } from "@/hooks/useBooking";
+import { useBooking } from "@/hooks/booking/useBooking";
 
 import ServiceSelector from "./ServiceSelector";
 import BarberSelector from "./BarberSelector";
@@ -15,17 +15,6 @@ import { useEffect } from "react";
 
 import { formatSmartDate } from "@/services/dateService";
 import { formatTimeSlot } from "@/services/dateService";
-
-function PlaceholderCard({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="flex min-h-[220px] items-center justify-center rounded-[1.6rem] border border-dashed border-white/8 bg-white/[0.02] p-6 text-center">
-      <div className="max-w-xs space-y-2">
-        <p className="text-sm font-semibold text-white">{title}</p>
-        <p className="text-sm leading-6 text-slate-400">{body}</p>
-      </div>
-    </div>
-  );
-}
 
 export default function Booking({
   services,

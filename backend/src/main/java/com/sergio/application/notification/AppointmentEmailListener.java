@@ -29,7 +29,8 @@ public class AppointmentEmailListener {
             emailService.sendAppointmentConfirmation(
                     a,
                     buildManageUrl(event.slug(), a.getCustomerEmail()),
-                    buildCancelUrl(event.slug(), event.cancelToken())
+                    buildCancelUrl(event.slug(), event.cancelToken()),
+                    event.source()
             );
 
         } catch (Exception e) {
@@ -43,7 +44,8 @@ public class AppointmentEmailListener {
         try {
             emailService.sendAppointmentRescheduled(
                     a,
-                    buildManageUrl(event.slug(), a.getCustomerEmail())
+                    buildManageUrl(event.slug(), a.getCustomerEmail()),
+                    event.source()
             );
 
         } catch (Exception e) {
@@ -57,7 +59,8 @@ public class AppointmentEmailListener {
         try {
             emailService.sendAppointmentCancelled(
                     a,
-                    buildBookingUrl(event.slug())
+                    buildBookingUrl(event.slug()),
+                    event.source()
             );
 
         } catch (Exception e) {

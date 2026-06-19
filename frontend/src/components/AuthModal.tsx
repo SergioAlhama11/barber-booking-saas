@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import OtpInput from "@/components/OTPInput";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/booking/useAuth";
 
 type AuthModalProps = {
   open: boolean;

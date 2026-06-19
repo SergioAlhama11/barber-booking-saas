@@ -12,6 +12,5 @@ public record CreateAppointmentRequest(
         @NotNull Long serviceId,
         @NotBlank String customerName,
         @NotBlank @Email String customerEmail,
-        @NotNull Instant startTime,
-        String source
+        @NotNull Instant startTime
 ) {}
