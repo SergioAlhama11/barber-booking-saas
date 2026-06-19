@@ -1,4 +1,4 @@
-package com.sergio.application.qr;
+package com.sergio.application.admin.qr;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.BitMatrix;
@@ -10,13 +10,12 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 
 @ApplicationScoped
-public class QrService {
+public class QrImageService {
 
     public byte[] generateQr(String url) {
         try {
             QRCodeWriter writer = new QRCodeWriter();
             BitMatrix matrix = writer.encode(url, BarcodeFormat.QR_CODE, 300, 300);
-
             BufferedImage image = new BufferedImage(300, 300, BufferedImage.TYPE_INT_RGB);
 
             for (int x = 0; x < 300; x++) {
@@ -31,7 +30,7 @@ public class QrService {
             return baos.toByteArray();
 
         } catch (Exception e) {
-            throw new RuntimeException("Error generating QR", e);
+            throw new RuntimeException("Error generating QR image", e);
         }
     }
 }
