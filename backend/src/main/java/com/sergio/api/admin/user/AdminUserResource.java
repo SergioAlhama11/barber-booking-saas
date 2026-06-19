@@ -6,26 +6,21 @@ import com.sergio.api.admin.user.mapper.AdminUserMapper;
 import com.sergio.application.admin.user.AdminUserService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
 import java.util.List;
 
 @Path("/admin/users")
 @Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 @RolesAllowed("SUPER_ADMIN")
 public class AdminUserResource {
 
     private final AdminUserService adminUserService;
     private final AdminUserMapper mapper;
 
-    public AdminUserResource(
-            AdminUserService adminUserService,
-            AdminUserMapper mapper
-    ) {
+    public AdminUserResource(AdminUserService adminUserService, AdminUserMapper mapper) {
         this.adminUserService = adminUserService;
         this.mapper = mapper;
     }

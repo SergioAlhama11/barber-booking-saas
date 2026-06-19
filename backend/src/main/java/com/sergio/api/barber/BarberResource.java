@@ -1,18 +1,13 @@
 package com.sergio.api.barber;
 
 import com.sergio.api.barber.dto.BarberResponse;
-import com.sergio.api.barber.dto.CreateBarberRequest;
 import com.sergio.api.barber.mapper.BarberMapper;
 import com.sergio.application.barber.BarberService;
-import com.sergio.domain.barber.Barber;
 import jakarta.inject.Inject;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
-import java.net.URI;
 import java.util.List;
 
 @Path("/barbershops/{slug}/barbers")

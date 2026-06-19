@@ -1,11 +1,9 @@
 package com.sergio.api.barbershop;
 
 import com.sergio.api.barbershop.dto.BarbershopResponse;
-import com.sergio.api.barbershop.dto.CreateBarbershopRequest;
 import com.sergio.api.barbershop.mapper.BarbershopMapper;
 import com.sergio.application.barbershop.BarbershopService;
 import jakarta.inject.Inject;
-import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 

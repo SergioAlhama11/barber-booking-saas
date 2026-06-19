@@ -2,6 +2,7 @@ package com.sergio.api.barbershop.mapper;
 
 import com.sergio.api.barbershop.dto.BarbershopResponse;
 import com.sergio.api.barbershop.dto.CreateBarbershopRequest;
+import com.sergio.api.barbershop.dto.UpdateBarbershopRequest;
 import com.sergio.domain.barbershop.Barbershop;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -14,4 +15,8 @@ public interface BarbershopMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "slug", ignore = true)
     Barbershop toDomain(CreateBarbershopRequest createBarbershopRequest);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "slug", ignore = true)
+    Barbershop toDomain(UpdateBarbershopRequest request);
 }

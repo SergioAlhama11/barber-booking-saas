@@ -1,13 +1,14 @@
 package com.sergio.application.barber;
 
 import com.sergio.domain.barber.Barber;
+import com.sergio.domain.barber.exception.BarberDeletionNotAllowedException;
+import com.sergio.infrastructure.persistence.appointment.AppointmentRepository;
 import com.sergio.infrastructure.persistence.barber.BarberEntity;
 import com.sergio.infrastructure.persistence.barber.BarberRepository;
 import com.sergio.infrastructure.persistence.barber.mapper.BarberPersistenceMapper;
 import com.sergio.infrastructure.persistence.barbershop.BarbershopEntity;
 import com.sergio.infrastructure.persistence.barbershop.BarbershopRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 
@@ -17,57 +18,104 @@ import java.util.List;
 @ApplicationScoped
 public class BarberService {
 
-    @Inject
-    BarberRepository barberRepository;
+    private final BarberRepository barberRepository;
+    private final BarbershopRepository barbershopRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final BarberPersistenceMapper mapper;
 
-    @Inject
-    BarbershopRepository barbershopRepository;
+    public BarberService(BarberRepository barberRepository, BarbershopRepository barbershopRepository, AppointmentRepository appointmentRepository, BarberPersistenceMapper mapper) {
+        this.barberRepository = barberRepository;
+        this.barbershopRepository = barbershopRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.mapper = mapper;
+    }
 
-    @Inject
-    BarberPersistenceMapper barberPersistenceMapper;
+    // ==========================
+    // SHARED
+    // ==========================
 
-    public List<Barber> findAllBarbersByBarbershopSlug(String slug) {
-
-        BarbershopEntity barbershopEntity = barbershopRepository.find("slug", slug)
-                .firstResultOptional()
-                .orElseThrow(() -> new NotFoundException("Barbershop not found"));
-
-        return barberRepository.find("barbershopId", barbershopEntity.getId())
-                .list()
+    public List<Barber> findAll() {
+        return barberRepository.listAll()
                 .stream()
-                .map(barberPersistenceMapper::toDomain)
+                .map(mapper::toDomain)
                 .toList();
     }
 
-    public Barber findById(String slug, Long barberId) {
-        BarbershopEntity barbershopEntity = barbershopRepository.find("slug", slug)
-                .firstResultOptional()
-                .orElseThrow(() -> new NotFoundException("Barbershop not found"));
+    public List<Barber> findAllByBarbershopId(Long barbershopId) {
+        return barberRepository.findByBarbershopId(barbershopId)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 
-        BarberEntity barberEntity = barberRepository
-                .find("id = ?1 and barbershopId = ?2", barberId, barbershopEntity.getId())
-                .firstResult();
+    public Barber findById(Long barberId) {
+        return barberRepository.findByIdOptional(barberId)
+                .map(mapper::toDomain)
+                .orElseThrow(() -> new NotFoundException("Barber not found"));
+    }
 
-        if (barberEntity == null) {
-            throw new NotFoundException("Barber not found");
-        }
-
-        return barberPersistenceMapper.toDomain(barberEntity);
+    public Barber findByIdAndBarbershopId(Long barberId, Long barbershopId) {
+        return barberRepository
+                .findByIdAndBarbershopId(barberId, barbershopId)
+                .map(mapper::toDomain)
+                .orElseThrow(() -> new NotFoundException("Barber not found"));
     }
 
     @Transactional
-    public Barber create(String slug, Barber barber) {
+    public Barber create(Long barbershopId, Barber barber) {
+        BarberEntity entity = mapper.toEntity(barber);
 
-        BarbershopEntity barbershopEntity = barbershopRepository.find("slug", slug)
+        entity.setBarbershopId(barbershopId);
+        entity.setCreatedAt(Instant.now());
+
+        barberRepository.persist(entity);
+
+        return mapper.toDomain(entity);
+    }
+
+    @Transactional
+    public Barber update(Long barberId, Barber barber) {
+        BarberEntity entity = barberRepository
+                .findByIdOptional(barberId)
+                .orElseThrow(() -> new NotFoundException("Barber not found"));
+
+        entity.setName(barber.getName());
+
+        return mapper.toDomain(entity);
+    }
+
+    @Transactional
+    public void delete(Long barberId) {
+        if (appointmentRepository.existsByBarberId(barberId)) {
+            throw new BarberDeletionNotAllowedException();
+        }
+
+        BarberEntity entity = barberRepository
+                .findByIdOptional(barberId)
+                .orElseThrow(() -> new NotFoundException("Barber not found"));
+
+        barberRepository.delete(entity);
+    }
+
+    // ==========================
+    // PUBLIC API
+    // ==========================
+
+    public List<Barber> findAllBarbersByBarbershopSlug(String slug) {
+        Long barbershopId = getBarbershopIdBySlug(slug);
+        return findAllByBarbershopId(barbershopId);
+    }
+
+    public Barber findById(String slug, Long barberId) {
+        Long barbershopId = getBarbershopIdBySlug(slug);
+
+        return findByIdAndBarbershopId(barberId, barbershopId);
+    }
+
+    private Long getBarbershopIdBySlug(String slug) {
+        return barbershopRepository.find("slug", slug)
                 .firstResultOptional()
+                .map(BarbershopEntity::getId)
                 .orElseThrow(() -> new NotFoundException("Barbershop not found"));
-
-        BarberEntity barberEntity = barberPersistenceMapper.toEntity(barber);
-        barberEntity.setBarbershopId(barbershopEntity.getId());
-        barberEntity.setCreatedAt(Instant.now());
-
-        barberRepository.persist(barberEntity);
-
-        return barberPersistenceMapper.toDomain(barberEntity);
     }
 }

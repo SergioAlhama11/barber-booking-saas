@@ -2,9 +2,12 @@ package com.sergio.common.exception;
 
 import com.sergio.domain.appointment.exception.AppointmentConflictException;
 import com.sergio.domain.appointment.exception.InvalidAppointmentException;
+import com.sergio.domain.barber.exception.BarberDeletionNotAllowedException;
+import com.sergio.domain.barbershop.exception.BarbershopDeletionNotAllowedException;
 import com.sergio.domain.barbershop.exception.DuplicateBarbershopException;
 import com.sergio.domain.service.exception.DuplicateServiceException;
 import com.sergio.domain.service.exception.InvalidServiceException;
+import com.sergio.domain.service.exception.ServiceDeletionNotAllowedException;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
@@ -159,6 +162,34 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
                     Response.Status.BAD_REQUEST,
                     ErrorCode.VALIDATION_ERROR,
                     "Invalid filter value. Allowed values: FUTURE, PAST, ALL"
+            );
+        }
+
+        // =========================
+        // DELETE RESTRICTIONS
+        // =========================
+
+        if (exception instanceof BarberDeletionNotAllowedException ex) {
+            return build(
+                    Response.Status.CONFLICT,
+                    ErrorCode.DELETE_NOT_ALLOWED,
+                    ex.getMessage()
+            );
+        }
+
+        if (exception instanceof BarbershopDeletionNotAllowedException ex) {
+            return build(
+                    Response.Status.CONFLICT,
+                    ErrorCode.DELETE_NOT_ALLOWED,
+                    ex.getMessage()
+            );
+        }
+
+        if (exception instanceof ServiceDeletionNotAllowedException ex) {
+            return build(
+                    Response.Status.CONFLICT,
+                    ErrorCode.DELETE_NOT_ALLOWED,
+                    ex.getMessage()
             );
         }
 

@@ -1,13 +1,18 @@
 package com.sergio.api.admin.auth;
 
 import com.sergio.api.admin.auth.dto.AdminLoginRequest;
-import com.sergio.api.admin.auth.dto.AdminLoginResponse;
 import com.sergio.api.admin.auth.mapper.AdminAuthMapper;
 import com.sergio.application.admin.auth.AdminAuthService;
-import com.sergio.domain.admin.AdminUser;
+import com.sergio.infrastructure.security.AdminAuthCookieService;
 import jakarta.validation.Valid;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+import java.time.Duration;
 
 @Path("/admin/auth")
 @Produces(MediaType.APPLICATION_JSON)
@@ -16,18 +21,34 @@ public class AdminAuthResource {
 
     private final AdminAuthService adminAuthService;
     private final AdminAuthMapper mapper;
+    private final AdminAuthCookieService cookieService;
 
-    public AdminAuthResource(AdminAuthService adminAuthService, AdminAuthMapper mapper) {
+    public AdminAuthResource(
+            AdminAuthService adminAuthService,
+            AdminAuthMapper mapper,
+            AdminAuthCookieService cookieService
+    ) {
         this.adminAuthService = adminAuthService;
         this.mapper = mapper;
+        this.cookieService = cookieService;
     }
 
     @POST
     @Path("/login")
-    public AdminLoginResponse login(@Valid AdminLoginRequest request) {
-        AdminUser loginRequest = mapper.toDomain(request);
-        String token = adminAuthService.login(loginRequest);
+    public Response login(@Valid AdminLoginRequest request) {
 
-        return mapper.toDto(token);
+        String token = adminAuthService.login(mapper.toDomain(request));
+
+        return Response.ok()
+                .cookie(cookieService.buildSessionCookie(token, (int) Duration.ofDays(7).getSeconds()))
+                .build();
+    }
+
+    @POST
+    @Path("/logout")
+    public Response logout() {
+        return Response.ok()
+                .cookie(cookieService.buildExpiredCookie())
+                .build();
     }
 }

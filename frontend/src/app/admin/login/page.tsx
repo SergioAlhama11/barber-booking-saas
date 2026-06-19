@@ -2,8 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginAdmin } from "@/services/adminApi";
-import { setAdminSession } from "@/services/adminSession";
+import { loginAdmin } from "@/services/admin/auth/api";
 import { useAdminSession } from "@/hooks/useAdminSession";
 
 export default function AdminLoginPage() {
@@ -27,14 +26,13 @@ export default function AdminLoginPage() {
     setError("");
 
     try {
-      const { token } = await loginAdmin(email, password);
-      const me = await refreshSession(token);
+      await loginAdmin(email, password);
+      const me = await refreshSession();
 
       if (!me) {
         throw new Error("No se pudo validar la sesion");
       }
 
-      setAdminSession({ token, me });
       router.replace("/admin/appointments");
     } catch (err) {
       setError(

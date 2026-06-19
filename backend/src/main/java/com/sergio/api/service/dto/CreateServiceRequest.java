@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record CreateServiceRequest(
+        Long barbershopId,
         @NotBlank String name,
         @NotNull Integer durationMinutes,
         @NotNull @DecimalMin("0.01") BigDecimal price

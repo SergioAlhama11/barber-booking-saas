@@ -2,6 +2,7 @@ package com.sergio.api.admin.barbershop;
 
 import com.sergio.api.barbershop.dto.BarbershopResponse;
 import com.sergio.api.barbershop.dto.CreateBarbershopRequest;
+import com.sergio.api.barbershop.dto.UpdateBarbershopRequest;
 import com.sergio.api.barbershop.mapper.BarbershopMapper;
 import com.sergio.application.barbershop.BarbershopService;
 import jakarta.annotation.security.RolesAllowed;
@@ -20,10 +21,7 @@ public class AdminBarbershopResource {
     private final BarbershopService service;
     private final BarbershopMapper mapper;
 
-    public AdminBarbershopResource(
-            BarbershopService service,
-            BarbershopMapper mapper
-    ) {
+    public AdminBarbershopResource(BarbershopService service, BarbershopMapper mapper) {
         this.service = service;
         this.mapper = mapper;
     }
@@ -36,8 +34,26 @@ public class AdminBarbershopResource {
                 .toList();
     }
 
+    @GET
+    @Path("/{id}")
+    public BarbershopResponse findById(@PathParam("id") Long id) {
+        return mapper.toDto(service.findById(id));
+    }
+
     @POST
     public BarbershopResponse create(@Valid CreateBarbershopRequest request) {
         return mapper.toDto(service.create(mapper.toDomain(request)));
+    }
+
+    @PUT
+    @Path("/{id}")
+    public BarbershopResponse update(@PathParam("id") Long id, @Valid UpdateBarbershopRequest request) {
+        return mapper.toDto(service.update(id, mapper.toDomain(request)));
+    }
+
+    @DELETE
+    @Path("/{id}")
+    public void delete(@PathParam("id") Long id) {
+        service.delete(id);
     }
 }
