@@ -14,13 +14,27 @@ public class BarberRepository implements PanacheRepository<BarberEntity> {
         return list("barbershopId", barbershopId);
     }
 
+    public Optional<BarberEntity> findByIdAndBarbershopId(Long barberId, Long barbershopId) {
+        return find("id = ?1 and barbershopId = ?2", barberId, barbershopId).firstResultOptional();
+    }
+
+    public Optional<BarberEntity> findByNameAndBarbershopId(String name, Long barbershopId) {
+        return find("name = ?1 and barbershopId = ?2", name, barbershopId).firstResultOptional();
+    }
+
+    public boolean existsById(Long id) {
+        return count("id", id) > 0;
+    }
+
+    public boolean existsByBarbershopId(Long barbershopId) {
+        return count("barbershopId", barbershopId) > 0;
+    }
+
     public boolean existsByIdAndBarbershopId(Long barberId, Long barbershopId) {
         return count("id = ?1 and barbershopId = ?2", barberId, barbershopId) > 0;
     }
 
-    public Optional<String> findNameById(Long id) {
-        return find("select b.name from BarberEntity b where b.id = ?1", id)
-                .project(String.class)
-                .firstResultOptional();
+    public boolean existsByNameAndBarbershopId(String name, Long barbershopId) {
+        return count("name = ?1 and barbershopId = ?2", name, barbershopId) > 0;
     }
 }

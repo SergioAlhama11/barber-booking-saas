@@ -1,7 +1,6 @@
 package com.sergio.api.admin.auth.mapper;
 
 import com.sergio.api.admin.auth.dto.AdminLoginRequest;
-import com.sergio.api.admin.auth.dto.AdminLoginResponse;
 import com.sergio.domain.admin.AdminUser;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -16,8 +15,4 @@ public interface AdminAuthMapper {
    @Mapping(target = "createdAt", ignore = true)
    @Mapping(target = "updatedAt", ignore = true)
    AdminUser toDomain(AdminLoginRequest request);
-
-   default AdminLoginResponse toDto(String token) {
-      return new AdminLoginResponse(token);
-   }
 }

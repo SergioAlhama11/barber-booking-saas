@@ -6,74 +6,72 @@ import {
   readAdminSession,
   setAdminSession,
   subscribeToAdminSession,
-  type AdminMe,
-} from "@/services/adminSession";
-import { getAdminMe } from "@/services/adminApi";
+} from "@/services/admin/auth/session";
+import { AdminMe } from "@/services/admin/auth/types";
+import { getAdminMe, logoutAdmin } from "@/services/admin/auth/api";
 
 type UseAdminSessionResult = {
-  token: string | null;
   me: AdminMe | null;
   isReady: boolean;
   isLogged: boolean;
-  refreshSession: (tokenOverride?: string) => Promise<AdminMe | null>;
-  logout: () => void;
+  refreshSession: () => Promise<AdminMe | null>;
+  logout: () => Promise<void>;
 };
 
 export function useAdminSession(): UseAdminSessionResult {
   const [session, setSession] = useState(readAdminSession);
   const [isReady, setIsReady] = useState(false);
 
-  const refreshSession = useCallback(async (tokenOverride?: string) => {
-    const nextToken = tokenOverride ?? readAdminSession().token;
-
-    if (!nextToken) {
-      clearAdminSession();
-      setSession({ token: null, me: null });
-      return null;
-    }
-
+  const refreshSession = useCallback(async () => {
     try {
-      const me = await getAdminMe(tokenOverride);
-      const nextSession = { token: nextToken, me };
+      const me = await getAdminMe();
+
+      console.log("REFRESH_SESSION", me);
+
+      const nextSession = { me };
+
       setAdminSession(nextSession);
       setSession(nextSession);
+
       return me;
-    } catch {
+    } catch (error) {
+      console.log("REFRESH_ERROR", error);
+
       clearAdminSession();
-      setSession({ token: null, me: null });
+      setSession({ me: null });
+
       return null;
     } finally {
       setIsReady(true);
     }
   }, []);
 
-  useEffect(() => subscribeToAdminSession(() => setSession(readAdminSession())), []);
+  useEffect(
+    () => subscribeToAdminSession(() => setSession(readAdminSession())),
+    [],
+  );
 
   useEffect(() => {
-    const existingSession = readAdminSession();
-
-    if (!existingSession.token) {
-      setIsReady(true);
-      return;
-    }
-
     void refreshSession();
   }, [refreshSession]);
 
-  const logout = useCallback(() => {
-    clearAdminSession();
-    setSession({ token: null, me: null });
+  const logout = useCallback(async () => {
+    try {
+      await logoutAdmin();
+    } finally {
+      clearAdminSession();
+      setSession({ me: null });
+    }
   }, []);
 
   return useMemo(
     () => ({
-      token: session.token,
       me: session.me,
       isReady,
-      isLogged: !!session.token && !!session.me,
+      isLogged: !!session.me,
       refreshSession,
       logout,
     }),
-    [isReady, logout, refreshSession, session.me, session.token],
+    [isReady, logout, refreshSession, session.me],
   );
 }

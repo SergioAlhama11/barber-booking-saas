@@ -1,18 +1,13 @@
 package com.sergio.api.service;
 
-import com.sergio.api.service.dto.CreateServiceRequest;
 import com.sergio.api.service.dto.ServiceResponse;
 import com.sergio.api.service.mapper.ServiceMapper;
 import com.sergio.application.service.ServiceService;
-import com.sergio.domain.service.Service;
 import jakarta.inject.Inject;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
-import java.net.URI;
 import java.util.List;
 
 

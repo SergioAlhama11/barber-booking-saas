@@ -2,7 +2,9 @@ package com.sergio.application.barbershop;
 
 import com.sergio.common.util.SlugUtils;
 import com.sergio.domain.barbershop.Barbershop;
+import com.sergio.domain.barbershop.exception.BarbershopDeletionNotAllowedException;
 import com.sergio.domain.barbershop.exception.DuplicateBarbershopException;
+import com.sergio.infrastructure.persistence.barber.BarberRepository;
 import com.sergio.infrastructure.persistence.barbershop.BarbershopEntity;
 import com.sergio.infrastructure.persistence.barbershop.BarbershopRepository;
 import com.sergio.infrastructure.persistence.barbershop.mapper.BarbershopPersistenceMapper;
@@ -18,17 +20,27 @@ import java.util.List;
 @ApplicationScoped
 public class BarbershopService {
 
-    @Inject
-    BarbershopRepository barbershopRepository;
+    private final BarbershopRepository barbershopRepository;
+    private final BarberRepository barberRepository;
+    private final BarbershopPersistenceMapper mapper;
 
-    @Inject
-    BarbershopPersistenceMapper mapper;
+    public BarbershopService(BarbershopRepository barbershopRepository, BarberRepository barberRepository, BarbershopPersistenceMapper mapper) {
+        this.barbershopRepository = barbershopRepository;
+        this.barberRepository = barberRepository;
+        this.mapper = mapper;
+    }
 
     public List<Barbershop> findAll() {
         return barbershopRepository.listAll()
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
+    }
+
+    public Barbershop findById(Long id) {
+        return barbershopRepository.findByIdOptional(id)
+                .map(mapper::toDomain)
+                .orElseThrow(() -> new NotFoundException("Barbershop not found"));
     }
 
     public Barbershop findBySlug(String slug) {
@@ -54,6 +66,29 @@ public class BarbershopService {
         }
 
         return mapper.toDomain(entity);
+    }
+
+    @Transactional
+    public Barbershop update(Long id, Barbershop barbershop) {
+        BarbershopEntity entity = barbershopRepository.findByIdOptional(id)
+                .orElseThrow(() -> new NotFoundException("Barbershop not found"));
+
+        entity.setName(barbershop.getName());
+
+        return mapper.toDomain(entity);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        if (barberRepository.existsByBarbershopId(id)) {
+            throw new BarbershopDeletionNotAllowedException();
+        }
+
+        BarbershopEntity entity = barbershopRepository
+                .findByIdOptional(id)
+                .orElseThrow(() -> new NotFoundException("Barbershop not found"));
+
+        barbershopRepository.delete(entity);
     }
 
     private String generateUniqueSlug(String name) {
