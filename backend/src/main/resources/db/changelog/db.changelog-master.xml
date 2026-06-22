@@ -24,5 +24,6 @@
     <include file="db/changelog/015-admin-owner-support.xml"/>
     <include file="db/changelog/016-add-barber-id-to-admin-users.xml"/>
     <include file="db/changelog/017-create-barber-unavailability.xml"/>
+    <include file="db/changelog/018-barber-unavailability-barber-id-not-null.xml"/>
 
 </databaseChangeLog>
